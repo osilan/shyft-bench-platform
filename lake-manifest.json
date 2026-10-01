@@ -1,0 +1,13 @@
+{"version": "1.2.0",
+ "packagesDir": ".lake/packages",
+ "packages":
+ [{"type": "path",
+   "scope": "",
+   "name": "«lean-spec»",
+   "manifestFile": "lake-manifest.json",
+   "inherited": false,
+   "dir": "open-lean-spec",
+   "configFile": "lakefile.lean"}],
+ "name": "shyftBenchPlatform",
+ "lakeDir": ".lake",
+ "fixedToolchain": false}

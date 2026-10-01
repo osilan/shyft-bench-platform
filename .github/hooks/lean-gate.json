@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "[ ! -f scripts/gate.py ] || python3 scripts/gate.py hook guard",
+        "timeout": 15
+      }
+    ]
+  }
+}
