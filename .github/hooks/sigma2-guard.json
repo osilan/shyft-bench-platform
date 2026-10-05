@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "[ ! -f scripts/sigma2_guard.py ] || python3 scripts/sigma2_guard.py",
+        "timeout": 10
+      }
+    ]
+  }
+}

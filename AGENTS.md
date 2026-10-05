@@ -7,7 +7,7 @@ VS Code. Canonical copies: `copilot-agents/variants/shyft-bench-platform/`.
 |---|---|---|
 | Researcher | Proposes experiment plans as catalogue entries; keeps claims honest | Founder, via the Architect |
 | Architect | Lead: turns requirements into Lean specs and decisions, delegates, runs the review round | Founder |
-| Sigma2 Guru | First: collect the finished reverse run from `se-bench-rev1`; then pod-code divergence, pod and DTSS checks, staging, launches, monitoring and collection on Sigma2 (local VS Code only) | Architect |
+| Sigma2 Guru | Operates Sigma2 only through `scripts/sigma2.py` (no file edits). First: collect the finished reverse run from DTSS container `se-bench`; later slices: pod-code divergence, launch decision, staging, launches, monitoring (local VS Code only) | Architect |
 | Backend Developer | Lean proofs and reference model, Python pipeline, C++ for Shyft; answers Shyft questions from the pinned commit | Architect |
 | Frontend Developer | TypeScript dashboard | Architect |
 | Documentation | README, AGENTS and generated docs true to the spec; literature search on hydrological benchmarking, recorded as verified references | Architect |
@@ -24,6 +24,8 @@ VS Code. Canonical copies: `copilot-agents/variants/shyft-bench-platform/`.
 - Requirement text, theorem statements and decisions change only with the founder's approval.
 - Shyft facts come from the pinned commit (`shyftPin`), not from a local checkout's branch.
 - Nothing runs on Sigma2 unless `decideLaunch` allows it on the pod's actual Shyft build.
+- Sigma2 is reached only through `python3 scripts/sigma2.py` (D-009); a workspace hook blocks raw
+  `kubectl`, the auth helper and kubeconfig for every agent.
 - Regime codes are the R script's (1 mountain, 2 inland, 3 atlantic, 4 baltic,
   0 transition). Pass regimes between modules by name.
 - Never handle credentials; never delete remote data; never work on `main`. Agents cannot

@@ -42,3 +42,36 @@ python3 scripts/gate.py check
 ## Agents
 
 The repository has a GitHub Copilot agent crew in `.github/agents/`; see [AGENTS.md](AGENTS.md).
+
+## Working on Sigma2
+
+Every Sigma2 step is a command of `scripts/sigma2.py` (decision D-009), so a collection can be
+repeated without any agent. You log in to NIRD yourself; the tool reuses your kubectl session
+and tells you (exit code 4) when the login has expired.
+
+```bash
+python3 scripts/sigma2.py preflight --run 20261005-1400-collect-reverse
+python3 scripts/sigma2.py inventory --run 20261005-1400-collect-reverse --container se-bench
+python3 scripts/sigma2.py snapshot  --run 20261005-1400-collect-reverse --experiment legacy-rpmstk-reverse --container se-bench
+#   review runs/<run>/expected.proposed.json, set stations, save it as runs/<run>/expected.json
+python3 scripts/sigma2.py complete  --run 20261005-1400-collect-reverse
+python3 scripts/sigma2.py extract   --run 20261005-1400-collect-reverse --confirm
+python3 scripts/sigma2.py fetch     --run 20261005-1400-collect-reverse
+```
+
+- Target (context, namespace, deployment, DTSS address, paths): `config/sigma2.json`.
+- Legacy runs: the reverse run was launched by hand from the old `run_benchmark_experiment.py`
+  in batches, so `snapshot` reads the run settings from that file and `fill_benchmark_data.py`.
+  A run is reverse when its calibration starts after its simulation starts (`T0_CAL`, `T0_SIM`);
+  the series names carry no `_rev`. Goals, pcorr and variants come from the series present;
+  the stations the run covered are confirmed by the founder.
+- Pod-side code: `scripts/sigma2_pod/`, piped to the pod's python on stdin; nothing is copied
+  into the pod. Each pod script's SHA-256 is recorded in the manifest.
+- Results: `runs/<run_id>/` (git-ignored) with `manifest.json`, the JSON/Markdown reports,
+  and `data/` with NetCDF files verified against the pod's checksums. NetCDF files also carry
+  a content hash that ignores who collected them when, so two collections of the same data
+  compare equal.
+- Read-only by default; `extract` writes a new pod folder only with `--confirm` and never
+  into the DTSS store. Output folders are never overwritten.
+- Tests: `python3 -m unittest tests.test_sigma2` (a fake kubectl runs the real pod scripts
+  against a stub Shyft; extraction tests need `pip install -r requirements.txt`).

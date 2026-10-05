@@ -1,0 +1,24 @@
+{
+  "context": "nird-lmd",
+  "namespace": "shyft-ns11121k",
+  "target": "deploy/shyftservices",
+  "container": null,
+  "python": "python3",
+  "dtss": "shyftdtss:22010",
+  "store_root": "/shyft-var/dtss/db",
+  "pod_code_dir": "/shyft-data/projects/shyft-hydro-benchmarking/catchments_simulation/service_based/hydrology/demo",
+  "pod_code_files": [
+    "run_benchmark_experiment.py",
+    "fill_benchmark_data.py",
+    "experiment_config.py",
+    "run_experiments.py",
+    "batch_utils.py",
+    "result_storage.py"
+  ],
+  "pod_config_files": [
+    "fill_benchmark_data.py",
+    "run_benchmark_experiment.py"
+  ],
+  "pod_output_root": "/shyft-data/projects/shyft-bench-platform/output",
+  "results_root": "runs"
+}

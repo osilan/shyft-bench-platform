@@ -18,9 +18,11 @@
     "audit/baseline.json",
     "audit/fingerprint.tsv",
     "audit/gate.json",
+    "config/sigma2.json",
+    "data/regime",
     "open-lean-spec",
     "scripts/gate.py",
-    "data/regime"
+    "scripts/sigma2_guard.py"
   ],
   "stop_retries": 3
 }
