@@ -111,7 +111,7 @@ requirement legacyReadOnly where
 
 requirement collectReverseRun where
   id "bench.collect.reverse-run"
-  shall "Collect the finished rpmstk reverse run, gathered by the founder in /shyft-var/dtss/db/se-bench-rev1, before any other Sigma2 work: report completeness per run key against the run's configuration, list partial and duplicated series for the founder's decision, extract the complete series to NetCDF with metadata, and bring them home with SHA-256 checksums and a manifest that records the pod's code checksums, configuration and Shyft version."
+  shall "Collect the finished rpmstk reverse run, stored in DTSS container se-bench, before any other Sigma2 work: report completeness per run key against the run's configuration, list partial and duplicated series for the founder's decision, extract the complete series to NetCDF with metadata, and bring them home with SHA-256 checksums and a manifest that records the pod's code checksums, configuration and Shyft version."
   strength must
 
   scenario "partial or duplicated series"

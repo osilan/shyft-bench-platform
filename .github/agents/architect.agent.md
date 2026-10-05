@@ -77,7 +77,7 @@ made (cite `D-NNN`), requirement ids, what to produce, what not to touch.
 ## First step on Sigma2
 
 The Sigma2 Guru first collects the finished rpmstk reverse run from
-`/shyft-var/dtss/db/se-bench-rev1/` (D-007): inventory, completeness per run key, provenance
+DTSS container `se-bench` (D-007, D-010): inventory, completeness per run key, provenance
 snapshot of the pod code, NetCDF extraction, checksummed copy home. You then import it into
 the catalogue. The full pod-code divergence check (`bench.sigma2.code-divergence`) comes
 before any new experiment is launched.

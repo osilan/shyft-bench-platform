@@ -1,0 +1,4 @@
+# Pinned for the Sigma2 tool tests (extract writes NetCDF via xarray).
+numpy==2.5.3
+xarray==2026.9.0
+scipy==1.18.1
