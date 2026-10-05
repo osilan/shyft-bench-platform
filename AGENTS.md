@@ -7,9 +7,10 @@ VS Code. Canonical copies: `copilot-agents/variants/shyft-bench-platform/`.
 |---|---|---|
 | Researcher | Proposes experiment plans as catalogue entries; keeps claims honest | Founder, via the Architect |
 | Architect | Lead: turns requirements into Lean specs and decisions, delegates, runs the review round | Founder |
-| Sigma2 Guru | Pod and DTSS checks, staging, launches, monitoring and collection on Sigma2 (local VS Code only) | Architect |
+| Sigma2 Guru | First: collect the finished reverse run from `se-bench-rev1`; then pod-code divergence, pod and DTSS checks, staging, launches, monitoring and collection on Sigma2 (local VS Code only) | Architect |
 | Backend Developer | Lean proofs and reference model, Python pipeline, C++ for Shyft; answers Shyft questions from the pinned commit | Architect |
 | Frontend Developer | TypeScript dashboard | Architect |
+| Documentation | README, AGENTS and generated docs true to the spec; literature search on hydrological benchmarking, recorded as verified references | Architect |
 | Lean Reviewer | Review only: smaller, more functional Lean, statements frozen | Architect |
 | Code Reviewer | Review only: Python, C++, TypeScript | Architect |
 | DevOps | GitHub Actions, the Shyft container, the smoke tier, releases | Architect |

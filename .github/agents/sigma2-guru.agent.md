@@ -37,9 +37,54 @@ Sigma2; if you are running there, say so and stop.
   changes on redeploy).
 - The pod has **no internet**: code arrives by `kubectl cp`. Copy only what changed and
   record the local commit SHA.
-- DTSS store `shyft-var/dtss/db/`. After any pod restart, confirm containers are registered
+- Old benchmark code in the pod: `/shyft-data/projects/shyft-hydro-benchmarking/` (runner and
+  config in `catchments_simulation/service_based/hydrology/demo/`).
+- DTSS store: `/shyft-var/dtss/db/`. After any pod restart, confirm containers are registered
   before writing; unregistered writes land at the top level and split a run in two (this
-  happened to the rpmstk reverse run: `se-bench-rev1/` plus top level).
+  happened to the rpmstk reverse run; the founder has since gathered it into `se-bench-rev1/`).
+
+## First task: collect the finished reverse run (`bench.collect.reverse-run`, D-007)
+
+The founder has gathered the finished rpmstk reverse run into one container directory:
+`/shyft-var/dtss/db/se-bench-rev1/`. Collect it before anything else. Read-only on the store
+throughout; anything that changes the store or the server (registering a container, moving
+or deleting files) is done by the founder.
+
+1. **Inventory.** List `/shyft-var/dtss/db/se-bench-rev1/` with file count, total size and
+   newest modification time. Check whether `se-bench-rev1` is registered with the running DTSS
+   (read the server's container configuration or try a read through `DtsClient`). If it is not
+   registered, stop and ask the founder to register it; do not start servers or edit config.
+2. **Completeness.** Through the DTSS, find the simulated-discharge series
+   (`discharge-{model}-sim-{goal}-bobyqa{pcorr}-v{NN}-{station}`) and calibrated parameters.
+   Build the expected set from the run's configuration and report, per model x goal x pcorr x
+   variant: expected, present, complete over the simulation period, partial (series ending
+   early, e.g. pre-crash), duplicated. Partial and duplicated series are listed, not dropped or
+   chosen silently; the founder decides.
+3. **Provenance snapshot.** SHA-256 of the runner, config and helpers in
+   `/shyft-data/projects/shyft-hydro-benchmarking/catchments_simulation/service_based/hydrology/demo/`
+   (`run_benchmark_experiment.py`, `benchmark_config.py`, `experiment_config.py`,
+   `run_experiments.py`, `batch_utils.py`, `result_storage.py`, `run_all_batches.sh`), the
+   active config values, and the pod's Shyft version, all into the collection manifest. The
+   full comparison with the repository comes later (`bench.sigma2.code-divergence`).
+4. **Extract** the complete series to NetCDF in the pod, one file set per model and pcorr
+   variant, with experiment id, Shyft version, station, goal, variant and units as metadata.
+   Reuse the old `store_result_from_dtss.py` for this first pass (stage it with `kubectl cp`
+   only if the pod copy is missing or differs, and record which copy ran). Write to a new
+   output folder, never into the store.
+5. **Bring home** with `kubectl cp` into the git-ignored results root under
+   `runs/<run_id>/`, then verify SHA-256 per file against the in-pod checksums. If the founder
+   asks, also copy the raw `se-bench-rev1/` directory as an archive (report its size first).
+6. **Report**: the completeness table, the list of partial and duplicated series, file
+   counts and checksums, and the manifest path. Hand over to the Architect for import into the
+   catalogue.
+
+## Later: how the pod code diverged (`bench.sigma2.code-divergence`)
+
+Before any new experiment is launched: for each pod file in step 3, find the matching commit
+in `../shyft-hydro-benchmarking` (`git hash-object <file>`, then
+`git log --all --format='%h %ad %s' --find-object=<blob>`); if none, diff against `main` and
+the commit closest in date. Report file, pod SHA-256, matching commit or "none", lines that
+differ, and what the difference changes.
 
 ## Launch precondition (D-002, `bench.launch.precondition`)
 

@@ -61,7 +61,7 @@ def catalog : List Entry :=
   [.ptgsk, .ptstk, .ptsthbv, .rpmgsk].map (fun s => ⟨legacyBench s, .zenodoImport zenodoDoi⟩) ++
   [⟨legacyBench .rpmstk, .zenodoImport zenodoDoi⟩,
    ⟨{ legacyBench .rpmstk with id := "legacy-rpmstk-reverse" },
-     .dtssCollect "shyft-var/dtss/db: se-bench-rev1/ plus top level"⟩,
+     .dtssCollect "/shyft-var/dtss/db/se-bench-rev1"⟩,
    ⟨rpmfsm2kSnow, .planned⟩,
    ⟨ptfsm2kSnow, .planned⟩]
 

@@ -39,7 +39,15 @@ def decisions : List Decision := [
   { id := "D-006", date := "2026-10-01"
     decided := "Do not re-run legacy results; import them read-only and collect the finished rpmstk reverse run."
     why := "The published benchmark is the baseline; re-running it would cost compute and break provenance."
-    refines := ["bench.legacy.read-only", "bench.collect.reverse-run"] }
+    refines := ["bench.legacy.read-only", "bench.collect.reverse-run"] },
+  { id := "D-007", date := "2026-10-03"
+    decided := "The Sigma2 Guru's first task is to collect the finished rpmstk reverse run, which the founder has gathered in /shyft-var/dtss/db/se-bench-rev1. The full check of how the pod code diverged from the repository comes later, before any new experiment is launched; collection only snapshots the pod code's checksums."
+    why := "Getting the finished results home is the first value; the earlier split between se-bench-rev1 and the store's top level is resolved by the founder in the store."
+    refines := ["bench.collect.reverse-run", "bench.sigma2.code-divergence"] },
+  { id := "D-008", date := "2026-10-02"
+    decided := "Add a Documentation agent to the crew, responsible for documentation and for web search of hydrological benchmarking studies."
+    why := "Docs must stay true to the spec, and experiment plans need verified literature behind them."
+    refines := ["bench.docs"] }
 ]
 
 end ShyftBench

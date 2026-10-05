@@ -111,14 +111,19 @@ requirement legacyReadOnly where
 
 requirement collectReverseRun where
   id "bench.collect.reverse-run"
-  shall "Collect the finished rpmstk reverse run from the Sigma2 DTSS as the union of the se-bench-rev1 container and the top level, keeping one series per run key, rejecting partial pre-crash series, and ignoring unrelated top-level results."
+  shall "Collect the finished rpmstk reverse run, gathered by the founder in /shyft-var/dtss/db/se-bench-rev1, before any other Sigma2 work: report completeness per run key against the run's configuration, list partial and duplicated series for the founder's decision, extract the complete series to NetCDF with metadata, and bring them home with SHA-256 checksums and a manifest that records the pod's code checksums, configuration and Shyft version."
   strength must
 
-  scenario "duplicate after restart"
-    given "the same run key exists in se-bench-rev1 and at the top level"
+  scenario "partial or duplicated series"
+    given "a run key has a series that ends before the simulation period ends, or more than one series"
     when "the reverse run is collected"
-    then_ "exactly one complete series is kept and the choice is recorded"
-    check deferred "collection follows SPEC-RRD and is not implemented"
+    then_ "the key is listed for the founder's decision and no series for it is chosen or dropped silently"
+    check deferred "collection is not implemented"
+
+  scenario "copy verified"
+    when "the extracted files are copied home"
+    then_ "every file's SHA-256 matches the checksum computed in the pod"
+    check deferred "collection is not implemented"
 
 requirement canonicalMetrics where
   id "bench.metrics.canonical"
@@ -161,6 +166,28 @@ requirement sigma2Safety where
     when "a batch is launched on the pod"
     then_ "a manifest records the code version, experiment id, Shyft commit and output location"
     check deferred "launcher is not implemented"
+
+requirement codeDivergence where
+  id "bench.sigma2.code-divergence"
+  shall "Before any new experiment is launched on Sigma2, establish read-only how the benchmark code in the pod at /shyft-data/projects/shyft-hydro-benchmarking, starting with run_benchmark_experiment.py and its configuration, diverged from the shyft-hydro-benchmarking repository, and record the pod's active configuration, its Shyft version and the layout of the DTSS store at /shyft-var/dtss/db."
+  strength must
+
+  scenario "pod file matches no commit"
+    given "a pod file's content matches no commit of the repository"
+    when "the divergence check runs"
+    then_ "the report lists the file with its SHA-256, the nearest commit and the lines that differ, and nothing in the pod or the store is changed"
+    check deferred "the divergence check has not been run on the pod"
+
+requirement documentation where
+  id "bench.docs"
+  shall "Keep README, AGENTS and generated documentation consistent with the Lean specification, and maintain the project's literature on hydrological benchmarking as typed references, each verified against its publisher record and linked to the requirements or experiments it informs."
+  strength must
+
+  scenario "unverified reference"
+    given "a reference whose DOI or publisher record could not be opened"
+    when "it is recorded"
+    then_ "it is marked unverified and is not cited as read"
+    check deferred "the literature module is not built"
 
 requirement independentAudit where
   id "bench.audit.independent"

@@ -70,7 +70,8 @@ def snowCohortDesign : DesignUnit := {
 def allRequirements : Array Requirement := #[
   automateWorkflow, typedCatalogue, pinnedShyft, launchPrecondition, launchFallback,
   resultFiling, matchedComparison, snowCohort, legacyReadOnly, collectReverseRun,
-  canonicalMetrics, dashboard, smokeTier, sigma2Safety, independentAudit]
+  canonicalMetrics, dashboard, smokeTier, sigma2Safety, codeDivergence, documentation,
+  independentAudit]
 
 def allDesigns : Array DesignUnit := #[
   catalogueDesign, pinnedShyftDesign, launchPreconditionDesign, launchFallbackDesign,
