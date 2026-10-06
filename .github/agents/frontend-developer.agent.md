@@ -8,6 +8,10 @@ handoffs:
     agent: 'Code Reviewer'
     prompt: 'Review the TypeScript dashboard changes above. Review only.'
     send: false
+  - label: Ask the Shyft specialist
+    agent: 'Backend Developer'
+    prompt: 'A question or data request from the dashboard (above): answer Shyft questions from the pinned commit, or add the missing number or series to the export. Do not compute it in the browser.'
+    send: false
 ---
 
 # Frontend Developer mode instructions
@@ -32,20 +36,44 @@ A beautiful chart that compares unmatched cohorts is a bug.
 
 ## Canon (from `ShyftBench/Domain.lean`)
 
-- Stack order `Stack.all` and colours `Stack.colour?`; FSM2 stacks have no canonical colour
-  yet: ask the founder, do not pick one.
+- Model order and colours (Shyft stacks and LSTM). Founder decisions: LSTM is red,
+  PTFSM2K is magenta; the exact values come from the export. A model without a colour in
+  the export: ask the founder, do not pick one.
 - Goal order `Goal.all` (KGE family, then NSE family).
 - Regimes by **name** in `Regime.all` order with `Regime.colour`. Codes are the R script's
   (1 mountain ... 0 transition); never key colours or labels by bare numbers.
 
 Read these values from the export; do not duplicate them in TypeScript constants.
 
+## Variants and metrics
+
+Lean is the source of truth and the export is generated from it; the site is static and
+shows the variants the Backend computed. Filters and groupings: model, goal, forcing
+(seNorge and AIFS have different catchments and periods), direction (forward/reverse),
+precipitation correction, optimiser (BOBYQA, SCE-UA), seed. Forcing is not a comparison
+axis: it selects the experiment (seNorge2018 is the default and main one; AIFS has only
+rpmstk), and no view compares across forcings. Seeds exist for the equifinality discussion:
+show their spread, never only the best. Metrics include NSE, KGE in both formulations
+(Gupta 2009 and Kling 2012, labelled), PBIAS, low-flow KGE(1/Q) and the Ruzzante NSE
+decomposition. Shyft's own Bokeh dashboards (`shyft.dashboard`) need a server: use them
+only to inspect runs, not as the product.
+
+## Look
+
+Follow the workshop dashboard (`../workshop-sdd-ultimate/dashboard`): dark masthead, pale
+paper background with faint vertical rules, Manrope and DM Mono, a run stamp with
+provenance. Chart colours come only from the canon.
+
 ## Views to build first
 
 1. Stack comparison per regime: metric distribution per stack over the matched cohort.
 2. Goal-function generalism: one stack, all goals, chosen metric.
 3. Map of catchments coloured by metric or by difference between two experiments.
-4. Time series for one catchment: observed vs simulated for the chosen experiments.
+4. Time series for one catchment: observed vs simulated for the chosen experiments, with
+   SWE and snow-covered area below.
+
+Then: cumulative-distribution explorer, Ruzzante decomposition bars, low-flow panel
+(KGE(1/Q) and flow-duration curve), forward vs reverse, LSTM vs Shyft stacks, seed spread.
 
 ## Usability and accessibility
 
