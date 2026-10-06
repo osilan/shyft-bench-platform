@@ -45,8 +45,7 @@ Each one links to the requirement ids it refines.
    `#980043` (dark magenta), kept for later. The PT/RPM pairs follow the existing rule:
    PT is lighter, RPM is darker. Distances in CIELAB ΔE from the nearest existing colour:
    LSTM is 33 from RPMGSK `#d6604d`, PTFSM2K is 45 from PTSTHBV `#762a83`, and LSTM vs
-   PTFSM2K is 59. Founder approval of the exact hex values is pending; record them in
-   the same decision once the founder confirms.
+   PTFSM2K is 59. The founder approved these hex values on 2026-10-06.
 5. **Result variants.** The dashboard can filter and group by each of these:
    - **Forcing selects the experiment; it is not a comparison axis.** seNorge2018 (109
      catchments, its periods) and AIFS (70 catchments, its own periods, 2010–2022
@@ -134,10 +133,8 @@ One reference-value test per metric. A check that the view rejects unmatched exp
 Gate and `audit/` (Independent Auditor). The legacy result files (read-only). Sigma2 work
 (Sigma2 Guru; the reverse-run collection is in progress on `feat/sigma2-cli`).
 
-## Open questions for the founder
+## Founder decisions already made (2026-10-06)
 
-1. Confirm the hex values in decision 4: LSTM `#e31a1c`, PTFSM2K `#e7298a`, RPMFSM2K
-   `#980043`.
-
-Decided 2026-10-06: KGE(1/Q) uses ε = 0.01 × mean flow; SCE-UA runs are imported; RPMFSM2K
-is for later; seNorge and AIFS are never compared, and seNorge is the main experiment.
+KGE(1/Q) uses ε = 0.01 × mean flow. SCE-UA runs are imported. RPMFSM2K is for later. seNorge
+and AIFS are never compared, and seNorge is the main experiment. The colours are LSTM
+`#e31a1c`, PTFSM2K `#e7298a` and RPMFSM2K `#980043`. No questions are open.
