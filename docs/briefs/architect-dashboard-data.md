@@ -13,7 +13,7 @@ canonical order and colours, the catalogue, the list of metrics and the export f
 Python computes the numbers. TypeScript renders a **static** site from the export. It
 shows the variants the Backend computed and computes nothing itself.
 
-## Decisions to record (`ShyftBench/Decisions.lean`, next free ids from D-011)
+## Decisions to record (`ShyftBench/Decisions.lean`, next free ids from D-012; D-011 is the GitHub delivery set-up)
 
 Each one links to the requirement ids it refines.
 
@@ -138,3 +138,117 @@ Gate and `audit/` (Independent Auditor). The legacy result files (read-only). Si
 KGE(1/Q) uses ε = 0.01 × mean flow. SCE-UA runs are imported. RPMFSM2K is for later. seNorge
 and AIFS are never compared, and seNorge is the main experiment. The colours are LSTM
 `#e31a1c`, PTFSM2K `#e7298a` and RPMFSM2K `#980043`. No questions are open.
+
+## Founder decisions, 2026-10-08 (these replace anything above that disagrees)
+
+Record each one in `Decisions.lean` (numbering: see the review section below), linked to the
+requirements it refines.
+
+1. **Compare along one axis.** Two results are comparable when they differ in exactly one
+   chosen axis (model, goal, direction, pcorr, optimiser or seed) and agree on all the
+   others, over their matched catchments. **Forcing is never a comparison axis**: results
+   from different forcings are never compared. This replaces the current
+   `comparableWith`, which requires equal periods and optimiser and so rules out forward
+   vs reverse and BOBYQA vs SCE-UA. It changes the meaning of `bench.compare.matched`,
+   which the founder approves by this decision. Prove it in Lean: a comparison never spans
+   two forcings, and the arms differ only in the chosen axis. LSTM enters as a model, so
+   LSTM vs Shyft is a comparison along the model axis.
+2. **Validation period = simulation period minus calibration period.** The validation
+   period is the part of the simulation the model never saw during calibration. Define it
+   in Lean from the two periods. For forward runs it lies before the calibration period;
+   for reverse runs it lies after. Check that both come out right with `#guard`s on the
+   legacy forward and reverse periods (D-010). "Calibration → validation drop" means the
+   metric on the calibration period vs the metric on this period.
+3. **The site shows final figures, not live calculations.** It is like a paper or poster
+   with selectors.
+   - Python draws every figure in advance as SVG, in paper quality. The same files go
+     into the paper.
+   - The site is a thin static page. Its selectors (forcing first, then the variants)
+     pick the matching figure, and each figure has its data table below it.
+   - Nothing is computed in the browser, and **daily series are not published on the
+     site**. The catchment-detail hydrographs are figures like the rest.
+   - The **figure grid** (views × variant combinations, including which catchments get a
+     detail figure) is declared in Lean. The export check fails if a declared figure is
+     missing or an undeclared one appears. Keep the grid bounded; propose its size to the
+     founder before rendering.
+   - Every figure and table carries its provenance in the manifest: source files,
+     SHA-256, code version and Shyft commit. The Pages workflow lists and attests every
+     published file (D-011).
+
+What changes in the plan above:
+
+- **Export:** it is now figures (SVG), their data tables (CSV), the canon, the catalogue
+  and the manifest. The metrics long table stays as the internal compute output. The
+  per-catchment series are no longer exported to the site.
+- **Frontend:** a thin TypeScript page (or plain HTML, if that is enough; offer both).
+  Its only data is the figure index. It must build into `dashboard/dist/` with `npm ci`
+  and `npm run build` and a lock file in `dashboard/`, which is what
+  `.github/workflows/pages.yml` runs.
+- **Backend:** also owns the figure rendering, with Python, a pinned plotting library and
+  the canonical colours from the export.
+- **First slice:** the scoreboard figure for legacy PTGSK, seNorge, forward, both pcorr
+  settings, BOBYQA, with its table, published through Pages.
+- **Cloud agent:** GitHub's cloud agent sees only this repository. The legacy results,
+  `../shyft`, the LSTM pickles and the shapefiles are local. Spec work and the thin page
+  can run in the cloud; import, compute and rendering run in local VS Code.
+
+## Review of the first Architect run, 2026-10-08
+
+The first run (branch `copilot/vscode-muzen4go-w4b3`) added D-012 to D-017 and amended the
+requirements, but it did not have the decisions above. Continue on that branch and fix the
+following. The founder approves the resulting statement changes; **do not run
+`python3 scripts/gate.py update` and then report the fingerprint as accepted**. List the
+changed statements for the founder instead.
+
+### Founder decisions on that run
+
+1. **Keep the fallback (D-002 stands).** If the pod lacks the planned experiment's stack,
+   the founder chooses either to run the fallback experiment, if the pod provides its
+   stacks, or to request an image. A fallback is never relabelled as the planned
+   experiment. Restore `FallbackChoice`, `launchFallback` and the `bench.launch.fallback`
+   text, together with their theorems and guards. Rewrite D-016 so that it only says this:
+   PTFSM2K is the active FSM2 experiment, RPMFSM2K is future (`Provenance.future`), and
+   D-001 is superseded for the active plan. Mark D-001 as superseded where it is listed.
+2. **The smoke catchment is a random mountain station.** Draw one station at random from
+   the mountain stations of the frozen regime table (`Regime.mountain`, `data/regime/`). Do
+   it once, with a recorded seed, and fix it in Lean, so the CI reference stays
+   deterministic. A `#guard` checks that the station is in the mountain cohort. Remove the
+   hard-coded `cid-10-178.1.0`. Keep PTFSM2K, KGE and pcorr on unless the founder says
+   otherwise.
+
+### Findings to fix
+
+3. **Statements ahead of the model.** `bench.experiment.catalogue` now names model (stack
+   or LSTM), seed and derived direction, and its check stays executable, but none of these
+   exist in Lean. Add `Model` (stack or LSTM), `Direction` (derived from periods),
+   `Optimizer.sceua`, the seed or variant axis and the metric vocabulary in `Domain.lean`,
+   and extend `ResultKey` with them. Until a part exists, its scenario is `check deferred`
+   with the reason.
+4. **Colours are not recorded.** D-014 approves the colours for LSTM, PTFSM2K and
+   RPMFSM2K, but `Stack.colour?` still returns `none` for both FSM2 stacks. Record all
+   three, and add a guard that every model has a colour.
+5. **The comparison rule contradicts the views.** `bench.compare.matched` still requires
+   equal periods and optimiser, which rules out forward vs reverse and BOBYQA vs SCE-UA.
+   Replace it with the one-axis rule (decision 1 above), with the theorems asked for there.
+6. **Wrong reason for a deferred check.** The scenario "different forcings cannot be
+   compared" is deferred because "forcing equality is not yet enforced". It is enforced:
+   `comparableWith` requires the same forcing. Make the scenario executable, with a
+   theorem.
+7. **D-017 was not the founder's choice, and it no longer fits.** The brief asked for
+   export options and a wait for the founder's choice. D-017 also publishes daily series
+   as Parquet, which decision 3 above removes from the site. Replace D-017. Offer the
+   options for the internal compute output (the metrics table, the figure data tables and
+   the manifest), and for the figure grid and its size, then wait for the founder's
+   choice.
+8. **The dashboard text describes the wrong product.** `bench.dashboard` describes an
+   interactive TypeScript dashboard. Rewrite it for paper figures selected by variant
+   (decision 3 above), and do the same for the scenarios of `bench.export`.
+9. **Housekeeping.** Fix the typo "PTFFSM2K" in `Design.lean` and the indentation of the
+   catalogue list. Fill the legacy catchment lists from the import (still `[]`), or keep
+   a deferred scenario that says why they are empty.
+
+### Numbering
+
+D-012 to D-016 keep their numbers (D-016 is rewritten). D-017 is replaced by the
+founder's export decision once it is made. Today's decisions (one-axis comparison,
+validation period, paper figures, fallback kept, smoke catchment) get the next free ids.
