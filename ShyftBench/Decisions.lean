@@ -103,7 +103,11 @@ def decisions : List Decision := [
   { id := "D-022", date := "2026-10-08"
     decided := "Choose one station uniformly from Regime.mountain using recorded seed 20261008; it selected station 122.14. Fix that station in the CI smoke experiment and guard that it is in the frozen mountain cohort. Keep PTFSM2K, KGE and pcorr enabled."
     why := "A single recorded draw gives a representative mountain smoke catchment while keeping CI deterministic."
-    refines := ["bench.ci.smoke"] }
+    refines := ["bench.ci.smoke"] },
+  { id := "D-023", date := "2026-10-08"
+    decided := "The founder approves the 35-figure seNorge2018 aggregate grid. AIFS is future work and has no figures. The 10 catchment-detail figures are the 5 best and 5 worst catchments by KGE for rpmstk with pcorr on, listed in Lean once the metrics are computed."
+    why := "Best and worst cases show the range of model behaviour without a hand-picked list."
+    refines := ["bench.export", "bench.dashboard"] }
 ]
 
 end ShyftBench

@@ -53,10 +53,9 @@ def firstSlice : List FigureSpec :=
   [fig .scoreboard .seNorge2018 (some .forward) (some false),
    fig .scoreboard .seNorge2018 (some .forward) (some true)]
 
-/-- Aggregate figures: 35 for seNorge2018 (main) and 12 for AIFS, which are compared within AIFS only. -/
+/-- Aggregate figures: 35, all seNorge2018. AIFS is future work (D-023) and has none. -/
 def aggregateFigures : List FigureSpec :=
   let s := Forcing.seNorge2018
-  let a := Forcing.aifs
   firstSlice ++
   [fig .scoreboard s (some .reverse) (some false), fig .scoreboard s (some .reverse) (some true),
    fig .scoreboard s (some .forward) (some false) .sceua,
@@ -75,15 +74,14 @@ def aggregateFigures : List FigureSpec :=
    fig .lstmVsShyft s (some .reverse) (some false), fig .lstmVsShyft s (some .reverse) (some true),
    fig .seedSpread s (some .forward) (some false), fig .seedSpread s (some .forward) (some true),
    fig .seedSpread s (some .reverse) (some false), fig .seedSpread s (some .reverse) (some true),
-   fig .map s (some .forward) (some false), fig .map s (some .forward) (some true),
-   fig .scoreboard a none (some false), fig .scoreboard a none (some true),
-   fig .cdf a none (some false), fig .cdf a none (some true),
-   fig .kgeCompass a none (some false), fig .kgeCompass a none (some true),
-   fig .ruzzante a none (some false), fig .ruzzante a none (some true),
-   fig .lowFlow a none (some false), fig .lowFlow a none (some true),
-   fig .map a none (some false), fig .map a none (some true)]
+   fig .map s (some .forward) (some false), fig .map s (some .forward) (some true)]
 
-/-- Catchment-detail figures (at most 10). Empty until the founder names the catchments. -/
+/-- Detail catchments are the 5 best and 5 worst by KGE for rpmstk with pcorr on (D-023). The
+stations come from computed metrics, so they are listed here once the metrics exist. -/
+def detailBest : Nat := 5
+def detailWorst : Nat := 5
+
+/-- Catchment-detail figures (at most 10): empty until the metrics select the stations. -/
 def detailFigures : List FigureSpec := []
 
 def figureGrid : List FigureSpec := aggregateFigures ++ detailFigures
@@ -95,7 +93,9 @@ def maxDetailFigures : Nat := 10
 def gridMatches (declared published : List String) : Bool :=
   declared.all published.contains && published.all declared.contains
 
-#guard aggregateFigures.length == 47
+#guard aggregateFigures.length == 35
+#guard detailBest + detailWorst ≤ maxDetailFigures
+#guard aggregateFigures.all (·.forcing == .seNorge2018)
 #guard aggregateFigures.length ≤ maxAggregateFigures
 #guard detailFigures.length ≤ maxDetailFigures
 #guard (figureGrid.map FigureSpec.id).eraseDups.length == figureGrid.length

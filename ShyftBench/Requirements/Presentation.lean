@@ -26,6 +26,12 @@ requirement exportData where
     then_ "the declared grid has at most 48 aggregate figures and at most 10 catchment-detail figures"
     check executable
 
+  scenario "detail catchments are the best and worst by KGE"
+    given "computed KGE for rpmstk with pcorr on"
+    when "the catchment-detail figures are declared"
+    then_ "they are the 5 best and the 5 worst catchments, listed explicitly in Lean"
+    check deferred "the metrics are not computed yet"
+
   scenario "every figure and table traces to its sources"
     when "the export is generated"
     then_ "the manifest lists for every figure and table its source files with SHA-256 values, the code version and the Shyft commit"
