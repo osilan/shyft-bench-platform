@@ -13,7 +13,7 @@ canonical order and colours, the catalogue, the list of metrics and the export f
 Python computes the numbers. TypeScript renders a **static** site from the export. It
 shows the variants the Backend computed and computes nothing itself.
 
-## Decisions to record (`ShyftBench/Decisions.lean`, next free ids from D-011)
+## Decisions to record (`ShyftBench/Decisions.lean`, next free ids from D-012; D-011 is the GitHub delivery set-up)
 
 Each one links to the requirement ids it refines.
 
@@ -138,3 +138,55 @@ Gate and `audit/` (Independent Auditor). The legacy result files (read-only). Si
 KGE(1/Q) uses ε = 0.01 × mean flow. SCE-UA runs are imported. RPMFSM2K is for later. seNorge
 and AIFS are never compared, and seNorge is the main experiment. The colours are LSTM
 `#e31a1c`, PTFSM2K `#e7298a` and RPMFSM2K `#980043`. No questions are open.
+
+## Founder decisions, 2026-10-08 (these replace anything above that disagrees)
+
+Record each one in `Decisions.lean` from D-012, linked to the requirements it refines.
+
+1. **Compare along one axis.** Two results are comparable when they differ in exactly one
+   chosen axis (model, goal, direction, pcorr, optimiser or seed) and agree on all the
+   others, over their matched catchments. **Forcing is never a comparison axis**: results
+   from different forcings are never compared. This replaces the current
+   `comparableWith`, which requires equal periods and optimiser and so rules out forward
+   vs reverse and BOBYQA vs SCE-UA. It changes the meaning of `bench.compare.matched`,
+   which the founder approves by this decision. Prove it in Lean: a comparison never spans
+   two forcings, and the arms differ only in the chosen axis. LSTM enters as a model, so
+   LSTM vs Shyft is a comparison along the model axis.
+2. **Validation period = simulation period minus calibration period.** The validation
+   period is the part of the simulation the model never saw during calibration. Define it
+   in Lean from the two periods. For forward runs it lies before the calibration period;
+   for reverse runs it lies after. Check that both come out right with `#guard`s on the
+   legacy forward and reverse periods (D-010). "Calibration → validation drop" means the
+   metric on the calibration period vs the metric on this period.
+3. **The site shows final figures, not live calculations.** It is like a paper or poster
+   with selectors.
+   - Python draws every figure in advance as SVG, in paper quality. The same files go
+     into the paper.
+   - The site is a thin static page. Its selectors (forcing first, then the variants)
+     pick the matching figure, and each figure has its data table below it.
+   - Nothing is computed in the browser, and **daily series are not published on the
+     site**. The catchment-detail hydrographs are figures like the rest.
+   - The **figure grid** (views × variant combinations, including which catchments get a
+     detail figure) is declared in Lean. The export check fails if a declared figure is
+     missing or an undeclared one appears. Keep the grid bounded; propose its size to the
+     founder before rendering.
+   - Every figure and table carries its provenance in the manifest: source files,
+     SHA-256, code version and Shyft commit. The Pages workflow lists and attests every
+     published file (D-011).
+
+What changes in the plan above:
+
+- **Export:** it is now figures (SVG), their data tables (CSV), the canon, the catalogue
+  and the manifest. The metrics long table stays as the internal compute output. The
+  per-catchment series are no longer exported to the site.
+- **Frontend:** a thin TypeScript page (or plain HTML, if that is enough; offer both).
+  Its only data is the figure index. It must build into `dashboard/dist/` with `npm ci`
+  and `npm run build` and a lock file in `dashboard/`, which is what
+  `.github/workflows/pages.yml` runs.
+- **Backend:** also owns the figure rendering, with Python, a pinned plotting library and
+  the canonical colours from the export.
+- **First slice:** the scoreboard figure for legacy PTGSK, seNorge, forward, both pcorr
+  settings, BOBYQA, with its table, published through Pages.
+- **Cloud agent:** GitHub's cloud agent sees only this repository. The legacy results,
+  `../shyft`, the LSTM pickles and the shapefiles are local. Spec work and the thin page
+  can run in the cloud; import, compute and rendering run in local VS Code.
