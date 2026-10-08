@@ -26,4 +26,6 @@ gate-owned file, or a file listed under `frozen` in `gate.json` (add the
 requirements file there once the spec is frozen).
 
 Hooks run only in local VS Code, not in GitHub's cloud coding agent; CI is the
-gate of record.
+gate of record. The cloud agent's environment is prepared by
+`.github/workflows/copilot-setup-steps.yml`, so it can run the gate itself, and the
+`main` ruleset (`.github/rulesets/main-gate.json`) requires the `gate` job to pass.
