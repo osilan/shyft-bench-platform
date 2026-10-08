@@ -105,7 +105,7 @@ def decisions : List Decision := [
     why := "A single recorded draw gives a representative mountain smoke catchment while keeping CI deterministic."
     refines := ["bench.ci.smoke"] },
   { id := "D-023", date := "2026-10-08"
-    decided := "The founder approves the 35-figure seNorge2018 aggregate grid. AIFS is future work and has no figures. The 10 catchment-detail figures are the 5 best and 5 worst catchments by KGE for rpmstk with pcorr on, listed in Lean once the metrics are computed."
+    decided := "The founder approves the 35-figure seNorge2018 aggregate grid. AIFS is future work and has no figures. The 10 catchment-detail figures are the 5 best and 5 worst catchments by KGE (Gupta et al., 2009) for rpmstk with pcorr on, listed in Lean once the metrics are computed."
     why := "Best and worst cases show the range of model behaviour without a hand-picked list."
     refines := ["bench.export", "bench.dashboard"] }
 ]

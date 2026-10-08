@@ -76,7 +76,7 @@ def aggregateFigures : List FigureSpec :=
    fig .seedSpread s (some .reverse) (some false), fig .seedSpread s (some .reverse) (some true),
    fig .map s (some .forward) (some false), fig .map s (some .forward) (some true)]
 
-/-- Detail catchments are the 5 best and 5 worst by KGE for rpmstk with pcorr on (D-023). The
+/-- Detail catchments are the 5 best and 5 worst by KGE (Gupta 2009, `Metric.kgeGupta`) for rpmstk with pcorr on (D-023). The
 stations come from computed metrics, so they are listed here once the metrics exist. -/
 def detailBest : Nat := 5
 def detailWorst : Nat := 5
