@@ -42,6 +42,20 @@ python3 scripts/gate.py check
 ## Agents
 
 The repository has a GitHub Copilot agent crew in `.github/agents/`; see [AGENTS.md](AGENTS.md).
+Issues can be assigned to the Copilot cloud agent; its pull requests go through the Lean gate.
+
+## Dashboard and provenance
+
+`main` is published to GitHub Pages after the Lean gate passes (`.github/workflows/pages.yml`).
+Until the dashboard is built, a placeholder page is published. Every published file is listed
+in `SHA256SUMS` and has a build-provenance attestation; to check a downloaded file:
+
+```bash
+gh attestation verify <file> --repo osilan/shyft-bench-platform
+```
+
+Rules for `main` (signed commits, no force-push, pull request plus gate) are recorded in
+[`.github/rulesets/`](.github/rulesets/README.md).
 
 ## Working on Sigma2
 

@@ -55,7 +55,11 @@ def decisions : List Decision := [
   { id := "D-010", date := "2026-10-05"
     decided := "Collect the legacy reverse run as it was actually launched: by hand, in batches, from the old run_benchmark_experiment.py and fill_benchmark_data.py, not from the new config. A run is reverse when its calibration starts after its simulation starts (T0_CAL 1999-09-01 + 7792 days, T0_SIM 1979-09-01 + 15098 days); the series names carry no _rev. The founder confirms which stations the run covered. Only collection reads the old code; this repository does not otherwise depend on shyft-hydro-benchmarking."
     why := "The new benchmark config was never used for this run, so reading it gave an empty expected set and a forward direction. New experiments run from this repository's own scripts once the old results are home."
-    refines := ["bench.collect.reverse-run", "bench.legacy.read-only"] }
+    refines := ["bench.collect.reverse-run", "bench.legacy.read-only"] },
+  { id := "D-011", date := "2026-10-08"
+    decided := "Use GitHub for delivery: the Copilot cloud agent gets a prepared environment (.github/workflows/copilot-setup-steps.yml: Python requirements and a built Lean package); the static dashboard is published on GitHub Pages only from a main commit that passed the Lean gate, with every published file checksummed and given a build-provenance attestation; rulesets on main forbid deletion and force-push, require signed commits, and require a pull request with the gate passing for everyone but the founder."
+    why := "Agents can then work from issues in GitHub's cloud and still meet the gate; results reach readers only from checked commits; and anyone can verify which commit and workflow built a published file."
+    refines := ["bench.dashboard", "bench.audit.independent"] }
 ]
 
 end ShyftBench

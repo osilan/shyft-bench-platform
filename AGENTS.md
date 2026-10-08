@@ -30,3 +30,13 @@ VS Code. Canonical copies: `copilot-agents/variants/shyft-bench-platform/`.
   0 transition). Pass regimes between modules by name.
 - Never handle credentials; never delete remote data; never work on `main`. Agents cannot
   sign commits, so they stage changes and hand the founder the commands.
+
+## In GitHub's cloud (D-011)
+
+- Assign an issue to Copilot to have the cloud agent work on it; it opens a pull request.
+  `.github/workflows/copilot-setup-steps.yml` installs the Python requirements and builds the
+  Lean package first, so the agent can run `python3 scripts/gate.py check` itself.
+- The workspace hooks in `.github/hooks/` are for local VS Code. The cloud agent's pull request
+  must pass the `gate` check before it can merge (ruleset in `.github/rulesets/`).
+- Sigma2 is not reachable from GitHub's cloud: collection and launches stay local (D-009).
+- `.github/workflows/pages.yml` publishes the dashboard from `main` after the gate passes.
