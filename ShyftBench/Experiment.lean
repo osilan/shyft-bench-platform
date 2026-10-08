@@ -69,62 +69,41 @@ def benchSimulation : Period := ⟨⟨1979, 9, 1⟩, 15098⟩
 def Experiment.withStacks (e : Experiment) (id : String) (stacks : List Stack) : Experiment :=
   { e with id, stacks }
 
-/-! ## Launch decision (D-002) -/
-
-/-- What Olga chooses when the pod cannot run the planned experiment. -/
-inductive FallbackChoice where
-  | runFallback   -- run the fallback experiment now
-  | requestImage  -- ask the Sigma2 team for an image built from `shyftPin` or later
-  deriving Repr, DecidableEq
+/-! ## Launch decision (D-002, D-016) -/
 
 inductive LaunchDecision where
   | launch (e : Experiment)
-  | launchFallback (planned fallback : Experiment)
   | requestImage (planned : Experiment) (minCommit : String)
   deriving Repr, BEq
 
-/-- Launch the plan if the pod provides its stacks; otherwise follow Olga's choice. A fallback
-the pod cannot run either becomes an image request. -/
-def decideLaunch (pod : ShyftBuild) (planned fallback : Experiment) (choice : FallbackChoice) :
-    LaunchDecision :=
-  if planned.runsOn pod then .launch planned
-  else match choice with
-    | .runFallback => if fallback.runsOn pod then .launchFallback planned fallback
-                      else .requestImage planned shyftPin.commit
-    | .requestImage => .requestImage planned shyftPin.commit
+/-- Launch the plan when the pod provides its stacks. Otherwise request an image; never
+substitute a different experiment or stack. -/
+def decideLaunch (pod : ShyftBuild) (planned : Experiment) : LaunchDecision :=
+  if planned.runsOn pod then .launch planned else .requestImage planned shyftPin.commit
 
 /-- The experiment that would actually start, if any. -/
 def LaunchDecision.started : LaunchDecision → Option Experiment
   | .launch e => some e
-  | .launchFallback _ f => some f
   | .requestImage _ _ => none
 
 /-- Nothing starts on a pod that lacks one of its stacks. -/
-theorem decideLaunch_runsOn (pod : ShyftBuild) (planned fallback : Experiment)
-    (choice : FallbackChoice) (e : Experiment)
-    (h : (decideLaunch pod planned fallback choice).started = some e) : e.runsOn pod = true := by
+theorem decideLaunch_runsOn (pod : ShyftBuild) (planned : Experiment) (e : Experiment)
+    (h : (decideLaunch pod planned).started = some e) : e.runsOn pod = true := by
   unfold decideLaunch at h
   split at h
   · simp [LaunchDecision.started] at h; subst h; assumption
-  · cases choice with
-    | runFallback =>
-      simp only at h
-      split at h
-      · simp [LaunchDecision.started] at h; subst h; assumption
-      · simp [LaunchDecision.started] at h
-    | requestImage => simp [LaunchDecision.started] at h
+  · simp [LaunchDecision.started] at h
 
-/-- When the pod provides the planned stacks, the plan itself is launched, whatever the choice. -/
-theorem decideLaunch_planned (pod : ShyftBuild) (planned fallback : Experiment)
-    (choice : FallbackChoice) (h : planned.runsOn pod = true) :
-    decideLaunch pod planned fallback choice = .launch planned := by
+/-- When the pod provides the planned stacks, the plan itself is launched. -/
+theorem decideLaunch_planned (pod : ShyftBuild) (planned : Experiment)
+    (h : planned.runsOn pod = true) :
+    decideLaunch pod planned = .launch planned := by
   simp [decideLaunch, h]
 
-/-- Choosing an image request when the pod lacks a planned stack starts nothing and names
-the pinned commit. -/
-theorem decideLaunch_requestImage (pod : ShyftBuild) (planned fallback : Experiment)
+/-- When the pod lacks a planned stack, no run starts and the request names the pinned commit. -/
+theorem decideLaunch_requestImage (pod : ShyftBuild) (planned : Experiment)
     (h : planned.runsOn pod = false) :
-    decideLaunch pod planned fallback .requestImage = .requestImage planned shyftPin.commit := by
+    decideLaunch pod planned = .requestImage planned shyftPin.commit := by
   simp [decideLaunch, h]
 
 /-! ## Result filing -/

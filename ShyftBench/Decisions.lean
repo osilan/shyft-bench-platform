@@ -59,7 +59,31 @@ def decisions : List Decision := [
   { id := "D-011", date := "2026-10-08"
     decided := "Use GitHub for delivery: the Copilot cloud agent gets a prepared environment (.github/workflows/copilot-setup-steps.yml: Python requirements and a built Lean package); the static dashboard is published on GitHub Pages only from a main commit that passed the Lean gate, with every published file checksummed and given a build-provenance attestation; rulesets on main forbid deletion and force-push, require signed commits, and require a pull request with the gate passing for everyone but the founder."
     why := "Agents can then work from issues in GitHub's cloud and still meet the gate; results reach readers only from checked commits; and anyone can verify which commit and workflow built a published file."
-    refines := ["bench.dashboard", "bench.audit.independent"] }
+    refines := ["bench.dashboard", "bench.audit.independent"] },
+  { id := "D-012", date := "2026-10-06"
+    decided := "Lean is the source of truth for vocabularies, canonical order and colours, catalogue, metric list and generated export format. Python computes numeric results; the TypeScript dashboard is static, reads the export and computes no metrics."
+    why := "One specification must define what is computed and presented, with computation and rendering kept at the appropriate boundaries."
+    refines := ["bench.dashboard", "bench.export"] },
+  { id := "D-013", date := "2026-10-06"
+    decided := "Recompute metrics from daily series for legacy Shyft, reverse-run, LSTM and new results; never display metric columns from legacy CSVs. Use hydroeval for NSE, KGE (Gupta et al., 2009), KGE' (Kling et al., 2012), PBIAS and KGE(1/Q); provisionally map hydroeval kge and kgeprime to the two KGE formulations pending verification against a pinned hydroeval version. Port and characterize the old repository's Ruzzante et al. (2025) NSE decomposition from ../shyft-hydro-benchmarking/catchments_simulation/service_based/analysis/decomp_utils.py and compute_ruzzante_metrics.py. For KGE(1/Q), use ε = 0.01 × mean observed flow over evaluation, add ε to both series, and retain zero-flow days."
+    why := "The dashboard must expose explicitly defined metrics and reconcile existing formulation differences; the historical Ruzzante output and zero-flow behavior need characterization rather than silent reinterpretation."
+    refines := ["bench.metrics.canonical"] },
+  { id := "D-014", date := "2026-10-06"
+    decided := "A dashboard model is either a Shyft stack or LSTM. Assign LSTM #e31a1c, PTFSM2K #e7298a and RPMFSM2K #980043; these hex values are founder-approved."
+    why := "LSTM belongs in the canonical model vocabulary and palette without being represented as a Shyft stack; the colours distinguish it and the FSM2 pair."
+    refines := ["bench.dashboard", "bench.export"] },
+  { id := "D-015", date := "2026-10-06"
+    decided := "Forcing selects the experiment and is not a comparison axis: seNorge2018 is the main/default experiment, AIFS is separate, and results are never compared across forcings. Derive direction from calibration and simulation periods. Import SCE-UA alongside BOBYQA. Preserve seeds v00-v04 as a variant axis and show their spread without silently selecting the best."
+    why := "Forcings have different coverage and catchments; direction, optimiser and seed are analysis dimensions whose effects must remain explicit."
+    refines := ["bench.experiment.catalogue", "bench.compare.matched", "bench.dashboard", "bench.export"] },
+  { id := "D-016", date := "2026-10-06"
+    decided := "Supersede D-001 for the active FSM2 plan and D-002's PTFSM2K fallback clause: PTFSM2K is the only active planned FSM2 stack; RPMFSM2K is future work. Keep the pod-build precondition, but do not substitute another stack for the active PTFSM2K experiment; request a suitable image if the pod lacks it. Catalogue AIFS experiments with their own periods and catchments; LSTM forward/reverse runs from lstm_baseline/runs/shyft_lstm_{forward,reverse}_*; seeds v00-v04; SCE-UA legacy runs such as ptgsk_bc/*_sceua.csv; and actual legacy catchment lists. The first vertical slice is the read-only legacy PTGSK seNorge forward result, both pcorr settings and BOBYQA. The CI smoke calibration is PTFSM2K, KGE, cid-10-178.1.0 and pcorr enabled."
+    why := "The currently available pod supports PTFSM2K, while the export and dashboard can be developed against a small, reproducible legacy slice. The smoke parameters are fixed to make the CI reference deterministic."
+    refines := ["bench.experiment.catalogue", "bench.shyft.pinned", "bench.launch.precondition", "bench.launch.fallback", "bench.results.filing", "bench.ci.smoke", "bench.dashboard"] },
+  { id := "D-017", date := "2026-10-08"
+    decided := "Use a mixed dashboard export: JSON for canonical definitions, catalogue and manifest; GeoJSON for catchment geometries; partitioned Parquet for the metrics table and per-catchment, per-experiment series."
+    why := "JSON keeps small specification metadata inspectable, GeoJSON is directly usable for map features, and columnar Parquet suits the larger tabular metrics and time-series data without requiring clients to load the full dataset."
+    refines := ["bench.export"] }
 ]
 
 end ShyftBench

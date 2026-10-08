@@ -13,7 +13,8 @@ namespace ShyftBench
 inductive Provenance where
   | zenodoImport (doi : String)  -- published archive, imported read-only
   | dtssCollect (where_ : String)  -- finished run still in the Sigma2 DTSS, collected once
-  | planned                      -- to be launched by this platform
+  | planned                      -- active experiment to be launched by this platform
+  | future                       -- catalogued, but not yet eligible to launch
   deriving Repr, BEq
 
 structure Entry where
@@ -23,7 +24,7 @@ structure Entry where
 
 def Entry.legacy (e : Entry) : Bool :=
   match e.provenance with
-  | .planned => false
+  | .planned | .future => false
   | _ => true
 
 /-- First new experiment (D-001, D-003): RPMFSM2K, seNorge2018, the 70 snow-dominated
@@ -62,10 +63,13 @@ def catalog : List Entry :=
   [⟨legacyBench .rpmstk, .zenodoImport zenodoDoi⟩,
    ⟨{ legacyBench .rpmstk with id := "legacy-rpmstk-reverse" },
      .dtssCollect "/shyft-var/dtss/db/se-bench"⟩,
-   ⟨rpmfsm2kSnow, .planned⟩,
-   ⟨ptfsm2kSnow, .planned⟩]
+  ⟨rpmfsm2kSnow, .future⟩,
+  ⟨ptfsm2kSnow, .planned⟩]
 
 def Catalog.ids (c : List Entry) : List String := c.map (·.experiment.id)
+
+def Catalog.planned (c : List Entry) : List Entry :=
+  c.filter fun e => e.provenance == .planned
 
 /-! ## Catalogue invariants -/
 
@@ -77,10 +81,11 @@ def Catalog.ok (c : List Entry) : Bool :=
 /-- Liveness: at least one planned experiment with work to do, so an empty plan
 cannot satisfy the specification. -/
 def Catalog.live (c : List Entry) : Bool :=
-  c.any fun e => !e.legacy && e.experiment.runCount > 0
+  c.any fun e => e.provenance == .planned && e.experiment.runCount > 0
 
 #guard Catalog.ok catalog
 #guard Catalog.live catalog
+#guard Catalog.planned catalog == [⟨ptfsm2kSnow, .planned⟩]
 #guard rpmfsm2kSnow.wellFormed
 #guard rpmfsm2kSnow.runCount == 1 * 10 * 70 * 2
 #guard rpmfsm2kSnow.runsOn shyftPin
@@ -88,12 +93,10 @@ def Catalog.live (c : List Entry) : Bool :=
 #guard ptfsm2kSnow.runsOn shyftLocalMaster
 #guard rpmfsm2kSnow.comparableWith ptfsm2kSnow
 #guard rpmfsm2kSnow.comparableWith (legacyBench .rpmstk)
--- On the April build the planned run cannot start; the fallback or an image request follows.
-#guard decideLaunch shyftLocalMaster rpmfsm2kSnow ptfsm2kSnow .runFallback
-  == .launchFallback rpmfsm2kSnow ptfsm2kSnow
-#guard decideLaunch shyftLocalMaster rpmfsm2kSnow ptfsm2kSnow .requestImage
+#guard decideLaunch shyftLocalMaster rpmfsm2kSnow
   == .requestImage rpmfsm2kSnow "bfbdbe63c"
-#guard decideLaunch shyftPin rpmfsm2kSnow ptfsm2kSnow .runFallback == .launch rpmfsm2kSnow
+#guard decideLaunch shyftLocalMaster ptfsm2kSnow == .launch ptfsm2kSnow
+#guard decideLaunch shyftPin ptfsm2kSnow == .launch ptfsm2kSnow
 -- A PTFSM2K result is never filed as RPMFSM2K, even under the RPMFSM2K id.
 #guard !rpmfsm2kSnow.accepts
   { experimentId := rpmfsm2kSnow.id, stack := .ptfsm2k, goal := .kge, station := "109.29",
@@ -102,10 +105,10 @@ def Catalog.live (c : List Entry) : Bool :=
   { experimentId := rpmfsm2kSnow.id, stack := .rpmfsm2k, goal := .kge, station := "109.29",
     pcorr := false, shyftCommit := "bfbdbe63c" }
 
-/-- The planned experiment is launched on a build that provides its stack. -/
-theorem rpmfsm2kSnow_launches_on_pin (fallback : Experiment) (choice : FallbackChoice) :
-    decideLaunch shyftPin rpmfsm2kSnow fallback choice = .launch rpmfsm2kSnow :=
-  decideLaunch_planned _ _ _ _ (by decide)
+/-- The active PTFSM2K experiment is launched on a build that provides its stack. -/
+theorem ptfsm2kSnow_launches_on_pin :
+    decideLaunch shyftPin ptfsm2kSnow = .launch ptfsm2kSnow :=
+  decideLaunch_planned _ _ (by decide)
 
 /-- The catalogue is consistent and plans at least one run (kernel-checked). -/
 theorem catalog_ok_live : Catalog.ok catalog = true ∧ Catalog.live catalog = true := by

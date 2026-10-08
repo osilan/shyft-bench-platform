@@ -26,7 +26,7 @@ requirement automateWorkflow where
 
 requirement typedCatalogue where
   id "bench.experiment.catalogue"
-  shall "Define every experiment as a typed catalogue entry naming its stacks, forcing, goal functions, optimiser, catchments, calibration and simulation periods and pcorr variants; ids are unique, planned experiments are well formed, and the catalogue plans at least one run."
+  shall "Define every experiment as a typed catalogue entry naming its Shyft stack or LSTM model, forcing, goal functions, optimiser, catchments, calibration and simulation periods, precipitation-correction setting and seed or variant; derive forward or reverse direction from its periods. Keep forcing-specific experiments separate, import legacy results read-only, and ensure ids are unique, planned experiments are well formed, and the catalogue plans at least one run."
   strength must
 
   scenario "catalogue is consistent and live"
@@ -40,7 +40,7 @@ requirement pinnedShyft where
   strength must
 
   scenario "planned stacks exist in the pinned build"
-    given "the catalogue plans RPMFSM2K"
+    given "the catalogue plans the active PTFSM2K experiment"
     when "the launch decision is taken on a pod built from the pinned commit"
     then_ "the planned experiment is launched"
     check executable
@@ -58,13 +58,13 @@ requirement launchPrecondition where
 
 requirement launchFallback where
   id "bench.launch.fallback"
-  shall "When the pod cannot run the planned experiment, follow the founder's choice: run the fallback experiment if the pod provides its stacks, or request a new image built from the pinned commit; never relabel the fallback as the planned experiment."
+  shall "When the pod cannot run a planned experiment, do not substitute a different stack or launch a fallback experiment; request an image built from the pinned commit and start no run."
   strength must
 
-  scenario "image request starts nothing"
-    given "the pod lacks a planned stack and the founder chose to request an image"
+  scenario "missing PTFSM2K requests an image"
+    given "the pod lacks the stack in the active PTFSM2K plan"
     when "the launch decision is taken"
-    then_ "no experiment starts and the request names the pinned commit"
+    then_ "no experiment starts, no fallback stack is substituted, and the request names the pinned commit"
     check executable
 
 requirement resultFiling where
@@ -80,13 +80,19 @@ requirement resultFiling where
 
 requirement matchedComparison where
   id "bench.compare.matched"
-  shall "Compare experiments only when forcing, periods, optimiser, goal functions and pcorr variants match, and only over the catchments both experiments contain."
+  shall "Compare experiments only when forcing, periods, optimiser, goal functions and precipitation-correction settings match, and only over the catchments both experiments contain. Never compare across forcings. Preserve seed variants as a distribution and never silently select a best seed."
   strength must
 
   scenario "comparison uses the common catchments"
     when "two comparable experiments are compared"
     then_ "every compared catchment belongs to both experiments"
     check executable
+
+  scenario "different forcings cannot be compared"
+    given "two otherwise matching experiments use different forcings"
+    when "comparability is checked"
+    then_ "the experiments are not comparable"
+    check deferred "forcing equality is not yet enforced by the experiment model"
 
 requirement snowCohort where
   id "bench.cohort.snow"
@@ -127,35 +133,102 @@ requirement collectReverseRun where
 
 requirement canonicalMetrics where
   id "bench.metrics.canonical"
-  shall "Compute efficiency metrics, including KGE, NSE and the Ruzzante et al. (2025) decomposition, from one implementation per metric, checked against fixed reference values."
+  shall "Recompute dashboard metrics from daily observed and simulated discharge series for every legacy Shyft, reverse-run, LSTM and new result; do not display metric columns stored in legacy CSVs. Use hydroeval for NSE, KGE (Gupta et al., 2009), KGE' (Kling et al., 2012), PBIAS and KGE(1/Q), and a characterized port of the old repository's Ruzzante et al. (2025) NSE decomposition. KGE(1/Q) uses 1/(Q + ε), where ε is 0.01 times mean observed flow over the evaluation period, added to both series; retain zero-flow days. Check each implementation against fixed reference values."
   strength must
+
+  scenario "pinned hydroeval formulations"
+    given "a pinned hydroeval version"
+    when "the metric implementations are selected"
+    then_ "the version and the mapping of hydroeval kge and kgeprime to the two specified KGE formulations are verified and recorded"
+    check deferred "the pinned hydroeval version and formulation mapping are not verified"
 
   scenario "reference series"
     given "a fixed observed and simulated series with known metric values"
     when "the metrics are computed"
-    then_ "each value matches its reference within the stated tolerance"
+    then_ "NSE, both KGE formulations and PBIAS match their fixed references within the stated tolerance"
     check deferred "metrics are not ported yet"
+
+  scenario "low-flow metric retains zero-flow days"
+    given "an evaluation series containing zero-flow days"
+    when "KGE(1/Q) is computed with ε equal to 0.01 times mean observed flow"
+    then_ "ε is added to observed and simulated flow, no zero-flow day is dropped, and the value matches its fixed reference"
+    check deferred "KGE(1/Q) and its zero-flow reference test are not implemented"
+
+  scenario "Ruzzante port is characterized"
+    given "fixed series and output from the old repository's Ruzzante implementation"
+    when "the ported seasonal, interannual and irregular NSE decomposition is computed"
+    then_ "NSE components, r, α and variance shares match the characterized old output within the stated tolerance"
+    check deferred "the old output has not been pinned and the decomposition is not ported"
+
+requirement exportData where
+  id "bench.export"
+  shall "Generate a machine-readable dashboard export from the Lean specification. Emit canonical definitions, catalogue and manifest as JSON; catchment geometries as GeoJSON with regime names; and the long metrics table and daily observed and simulated discharge plus available SWE and snow-covered area series as Parquet, partitioned by experiment and catchment. The metrics table has one row per experiment, model, goal, forcing, direction, pcorr, optimiser, seed, station, period kind and metric. Include variants, periods, Shyft commit and provenance in the catalogue, and source files with SHA-256 values and code version in the manifest. Keep series split by catchment and experiment so clients need not load the full dataset."
+  strength must
+
+  scenario "export preserves canonical definitions and provenance"
+    when "the dashboard export is generated"
+    then_ "its canonical definitions and catalogue come from Lean and every metric row traces to source checksums, code version and Shyft commit"
+    check deferred "the export schema and generator are not implemented"
+
+  scenario "large series are split for delivery"
+    given "daily discharge, SWE or snow-covered area series for multiple catchments"
+    when "series are exported"
+    then_ "each catchment and experiment has separately addressable series data, with only available variables included"
+    check deferred "series export is not implemented"
+
+  scenario "catchment geometry carries regime names"
+    when "catchments are exported"
+    then_ "their GeoJSON geometry includes each catchment's regime by name"
+    check deferred "catchment GeoJSON export is not implemented"
 
 requirement dashboard where
   id "bench.dashboard"
-  shall "Present all catalogue results in a TypeScript dashboard with model comparison by regime, maps and time series, using the canonical stack order and colours and showing only matched comparisons."
+  shall "Present a static TypeScript dashboard that reads the Lean-generated export and computes no metrics. Show Shyft stacks and LSTM in canonical model order and colours. Let forcing select the experiment before other filters; never compare results across forcings. Support filters and grouping by goal, regime, metric, forward or reverse direction derived from periods, precipitation correction, optimiser and seed, preserving seed spread without silently selecting a best seed. Show only matched comparisons. The scoreboard shows models by goals and the median metric over the matched cohort. Also support cumulative distributions, per-catchment model comparisons, calibration-to-validation drop, precipitation-correction effects, both KGE component formulations, Ruzzante decomposition, low-flow KGE(1/Q) and flow-duration curves, forward-versus-reverse, LSTM-versus-Shyft, seed spread, maps and catchment hydrographs with available SWE and snow-covered area."
   strength must
 
-  scenario "compare stacks for a regime"
-    given "results from comparable experiments"
-    when "the user selects a regime"
-    then_ "the dashboard shows each stack's metric distribution over the matched catchments"
+  scenario "forcing selects a comparable result set"
+    given "results from seNorge2018 and AIFS experiments"
+    when "the user selects a forcing and compares models"
+    then_ "only results for that forcing are shown and no comparison can contain results from another forcing"
     check deferred "dashboard is not built"
+
+  scenario "variants and seeds remain visible"
+    given "matched results with different direction, pcorr, optimiser or seed variants"
+    when "the user filters or groups the results"
+    then_ "the selected variants are shown, and seed spread is preserved without silently choosing a best seed"
+    check deferred "dashboard variant views are not built"
+
+  scenario "model comparison uses the matched cohort"
+    given "results from comparable models for a regime"
+    when "the user opens a model comparison view"
+    then_ "score distributions and per-catchment comparisons use only the matched catchments"
+    check deferred "matched dashboard comparisons are not built"
+
+  scenario "scoreboard reports matched-cohort medians"
+    given "matched metric results for multiple models and goals"
+    when "the scoreboard is rendered"
+    then_ "each model-by-goal value is the median over the matched cohort"
+    check deferred "the median scoreboard is not built"
+
+  scenario "static view consumes exported data"
+    when "the dashboard is built and loaded"
+    then_ "it renders the Lean-generated export without recomputing metrics in TypeScript"
+    check deferred "the static dashboard is not built"
 
 requirement smokeTier where
   id "bench.ci.smoke"
-  shall "Run a containerised smoke tier in CI from the pinned Shyft commit: a small DTSS with a few catchments and a short forcing slice, one calibration per stack in the first planned experiment, and the metric and dashboard steps on its output."
+  shall "Run a containerised smoke tier in CI from the pinned Shyft commit using a small DTSS and short forcing slice. Exercise one PTFSM2K calibration for KGE, catchment cid-10-178.1.0 and pcorr enabled, then run the metric and dashboard steps against recorded references."
   strength must
 
   scenario "smoke run in CI"
     when "a pull request is opened"
     then_ "the smoke tier completes and its metrics match the recorded reference"
     check deferred "container and fixture are not built"
+
+  scenario "smoke calibration uses the selected variant"
+    when "the smoke calibration is planned"
+    then_ "it uses PTFSM2K, KGE, cid-10-178.1.0 and pcorr enabled"
+    check deferred "the smoke experiment fixture is not built"
 
 requirement sigma2Safety where
   id "bench.sigma2.safety"

@@ -27,8 +27,8 @@ def catalogueDesign : DesignUnit := {
 def pinnedShyftDesign : DesignUnit := {
   id := pinnedShyft.id
   interfaces := ⟨#[⟨"ShyftBuild", by native_decide⟩, ⟨"shyftPin", by native_decide⟩], by native_decide⟩
-  tests := ⟨#[⟨"rpmfsm2kSnow.runsOn shyftPin", by native_decide⟩], by native_decide⟩
-  theorems := #[⟨"ShyftBench.rpmfsm2kSnow_launches_on_pin", by native_decide⟩]
+  tests := ⟨#[⟨"ptfsm2kSnow.runsOn shyftPin", by native_decide⟩], by native_decide⟩
+  theorems := #[⟨"ShyftBench.ptfsm2kSnow_launches_on_pin", by native_decide⟩]
 }
 
 def launchPreconditionDesign : DesignUnit := {
@@ -40,8 +40,8 @@ def launchPreconditionDesign : DesignUnit := {
 
 def launchFallbackDesign : DesignUnit := {
   id := launchFallback.id
-  interfaces := ⟨#[⟨"FallbackChoice", by native_decide⟩, ⟨"ptfsm2kSnow", by native_decide⟩], by native_decide⟩
-  tests := ⟨#[⟨"decideLaunch shyftLocalMaster .requestImage", by native_decide⟩], by native_decide⟩
+  interfaces := ⟨#[⟨"decideLaunch", by native_decide⟩, ⟨"LaunchDecision", by native_decide⟩], by native_decide⟩
+  tests := ⟨#[⟨"missing PTFFSM2K requests an image without a fallback", by native_decide⟩], by native_decide⟩
   theorems := #[⟨"ShyftBench.decideLaunch_requestImage", by native_decide⟩]
 }
 
@@ -70,8 +70,8 @@ def snowCohortDesign : DesignUnit := {
 def allRequirements : Array Requirement := #[
   automateWorkflow, typedCatalogue, pinnedShyft, launchPrecondition, launchFallback,
   resultFiling, matchedComparison, snowCohort, legacyReadOnly, collectReverseRun,
-  canonicalMetrics, dashboard, smokeTier, sigma2Safety, codeDivergence, documentation,
-  independentAudit]
+  canonicalMetrics, exportData, dashboard, smokeTier, sigma2Safety, codeDivergence,
+  documentation, independentAudit]
 
 def allDesigns : Array DesignUnit := #[
   catalogueDesign, pinnedShyftDesign, launchPreconditionDesign, launchFallbackDesign,
