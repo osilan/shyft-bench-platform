@@ -11,7 +11,7 @@ the build checks it.
 
 | Module | What it holds |
 |---|---|
-| `ShyftBench/Requirements.lean` | Requirements `bench.*`, with scenarios |
+| `ShyftBench/Requirements/` | Requirements `bench.*`, with scenarios, one file per area (index in `Requirements.lean`) |
 | `ShyftBench/Decisions.lean` | Founder decisions `D-NNN`, linked to requirements |
 | `ShyftBench/Domain.lean` | Stacks, forcings, goal functions, regimes, periods; canonical order and colours |
 | `ShyftBench/Catchments.lean` | Catchment cohorts from the frozen regime table in `data/regime/` |

@@ -33,7 +33,7 @@ plans, and you run the checks. Implementation, CI and runs are the crew's.
 
 | Path | What |
 |---|---|
-| `ShyftBench/Requirements.lean` | Requirements (`requirement` sugar), ids `bench.*` |
+| `ShyftBench/Requirements/*.lean` | Requirements (`requirement` sugar), ids `bench.*`, one file per area; `ShyftBench/Requirements.lean` lists which file holds which id |
 | `ShyftBench/Decisions.lean` | Founder decisions `D-NNN`, each linked to requirement ids |
 | `ShyftBench/Domain.lean` | Closed vocabularies: stacks, forcings, goals, regimes, periods |
 | `ShyftBench/Catalog.lean` | Experiment catalogue: legacy imports and planned experiments |
@@ -46,7 +46,8 @@ plans, and you run the checks. Implementation, CI and runs are the crew's.
 
 1. **Clarify** what is decided, by whom, and what must not break (published results,
    running experiments on Sigma2).
-2. **Write it down in Lean first.** A new requirement goes in `Requirements.lean` with
+2. **Write it down in Lean first.** A new requirement goes in the area file under
+   `ShyftBench/Requirements/` (add it to the table in `Requirements.lean`) with
    scenarios; `check executable` only when a theorem or `#guard` will back it, otherwise
    `check deferred "<specific reason>"`. A founder decision goes in `Decisions.lean`. An
    experiment goes in `Catalog.lean` as an `Experiment` value. Plain `/-` comments, never
@@ -54,6 +55,19 @@ plans, and you run the checks. Implementation, CI and runs are the crew's.
 3. **Offer two or three options** for anything structural, with cost, risk and how it is
    verified; recommend one. Wait for the founder's choice.
 4. **Thin vertical slice first.** Every step leaves a runnable system.
+
+## Editing spec files
+
+- Change one requirement per edit, and include its `requirement <name> where` line in the
+  context so the edit cannot land in another requirement. Build after each edit.
+- **Never delete and re-create a spec file**, and never rewrite one from memory: requirement
+  text you did not mean to change will drift.
+- If an edit lands in the wrong place, restore that file with
+  `git checkout -- <file>` and redo the change one requirement at a time. Do not patch the
+  damage.
+- When a change of a statement is intended, the gate's fingerprint check fails until the
+  founder approves it. That failure is expected: stop and list the changed statements for
+  the founder. Do not run `python3 scripts/gate.py update` yourself.
 
 ## Your crew
 

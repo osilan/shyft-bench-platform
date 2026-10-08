@@ -200,6 +200,18 @@ following. The founder approves the resulting statement changes; **do not run
 `python3 scripts/gate.py update` and then report the fingerprint as accepted**. List the
 changed statements for the founder instead.
 
+The gate's fingerprint check therefore **fails, as expected**, once a statement changes. All
+other checks must pass. When only the fingerprint fails and every changed statement is one
+this brief asks for, stop and report the list. Do not keep editing to make the gate pass.
+The Stop hook asks up to three times; answer each time with the same list.
+
+Requirements are now one file per area under `ShyftBench/Requirements/` (the index is in
+`ShyftBench/Requirements.lean`). Edit one requirement at a time, and never re-create a file
+(see "Editing spec files" in the Architect's instructions). The first attempt at this brief
+mixed requirements together by patching one large file, then rewrote it from memory and
+changed 14 statements without asking. Start from the committed requirement files, not from
+that attempt.
+
 ### Founder decisions on that run
 
 1. **Keep the fallback (D-002 stands).** If the pod lacks the planned experiment's stack,
