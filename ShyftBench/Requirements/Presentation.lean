@@ -12,57 +12,68 @@ namespace ShyftBench
 
 requirement exportData where
   id "bench.export"
-  shall "Generate a machine-readable dashboard export from the Lean specification. Emit canonical definitions, catalogue and manifest as JSON; catchment geometries as GeoJSON with regime names; and the long metrics table and daily observed and simulated discharge plus available SWE and snow-covered area series as Parquet, partitioned by experiment and catchment. The metrics table has one row per experiment, model, goal, forcing, direction, pcorr, optimiser, seed, station, period kind and metric. Include variants, periods, Shyft commit and provenance in the catalogue, and source files with SHA-256 values and code version in the manifest. Keep series split by catchment and experiment so clients need not load the full dataset."
+  shall "Generate the site's export from the Lean specification: pre-rendered SVG figures, one CSV data table per figure, a figure index, the canon (model, goal, regime and metric order and colours), the catalogue and a manifest, with the index, canon, catalogue and manifest as JSON. The figure grid is declared in Lean as an explicit list, at most 48 aggregate figures and 10 catchment-detail figures; the export check fails if a declared figure is missing or an undeclared one appears. The internal long metrics table has one row per experiment, model, goal, forcing, direction, pcorr, optimiser, seed, station, period kind and metric, and is stored as Parquet; it is not published. Daily series are not published. The manifest records, for every figure and table, its source files with SHA-256 values, the code version and the Shyft commit."
   strength must
 
-  scenario "export preserves canonical definitions and provenance"
-    when "the dashboard export is generated"
-    then_ "its canonical definitions and catalogue come from Lean and every metric row traces to source checksums, code version and Shyft commit"
-    check deferred "the export schema and generator are not implemented"
+  scenario "export matches the declared figure grid"
+    given "a set of published figure ids"
+    when "the export check runs against the declared grid"
+    then_ "it passes only if every declared figure is present and no undeclared figure appears"
+    check executable
 
-  scenario "large series are split for delivery"
-    given "daily discharge, SWE or snow-covered area series for multiple catchments"
-    when "series are exported"
-    then_ "each catchment and experiment has separately addressable series data, with only available variables included"
-    check deferred "series export is not implemented"
+  scenario "grid is bounded"
+    when "the package builds"
+    then_ "the declared grid has at most 48 aggregate figures and at most 10 catchment-detail figures"
+    check executable
 
-  scenario "catchment geometry carries regime names"
-    when "catchments are exported"
-    then_ "their GeoJSON geometry includes each catchment's regime by name"
-    check deferred "catchment GeoJSON export is not implemented"
+  scenario "every figure and table traces to its sources"
+    when "the export is generated"
+    then_ "the manifest lists for every figure and table its source files with SHA-256 values, the code version and the Shyft commit"
+    check deferred "the export generator and manifest are not implemented"
+
+  scenario "no daily series are published"
+    when "the export is generated"
+    then_ "it contains figures, tables, index, canon, catalogue and manifest, and no daily discharge, SWE or snow-covered-area series"
+    check deferred "the export generator is not implemented"
 
 requirement dashboard where
   id "bench.dashboard"
-  shall "Present a static TypeScript dashboard that reads the Lean-generated export and computes no metrics. Show Shyft stacks and LSTM in canonical model order and colours. Let forcing select the experiment before other filters; never compare results across forcings. Support filters and grouping by goal, regime, metric, forward or reverse direction derived from periods, precipitation correction, optimiser and seed, preserving seed spread without silently selecting a best seed. Show only matched comparisons. The scoreboard shows models by goals and the median metric over the matched cohort. Also support cumulative distributions, per-catchment model comparisons, calibration-to-validation drop, precipitation-correction effects, both KGE component formulations, Ruzzante decomposition, low-flow KGE(1/Q) and flow-duration curves, forward-versus-reverse, LSTM-versus-Shyft, seed spread, maps and catchment hydrographs with available SWE and snow-covered area."
+  shall "Present the results as final, paper-quality figures on a thin static site, like a paper or poster with selectors. Python draws every figure in advance as SVG, and the same files go into the paper. The selectors pick the matching figure, forcing first and then the variants (direction, precipitation correction, optimiser, seed); each figure has its data table below it. Nothing is computed in the browser. seNorge2018 is the main experiment and the default; results are never compared across forcings. Show only matched comparisons, in the canonical model order and colours, and preserve seed spread without silently selecting a best seed. The figures cover the scoreboard (median over the matched cohort), cumulative distributions, per-catchment model comparisons, calibration-to-validation drop, precipitation-correction effects, both KGE formulations, Ruzzante decomposition, low-flow KGE(1/Q) and flow-duration curves, forward versus reverse, LSTM versus Shyft stacks, seed spread, maps and catchment hydrographs."
   strength must
 
   scenario "forcing selects a comparable result set"
     given "results from seNorge2018 and AIFS experiments"
     when "the user selects a forcing and compares models"
-    then_ "only results for that forcing are shown and no comparison can contain results from another forcing"
-    check deferred "dashboard is not built"
+    then_ "only figures for that forcing are shown and no figure compares results across forcings"
+    check executable
+
+  scenario "selectors pick a declared figure"
+    given "a forcing and a variant selection"
+    when "the site is loaded"
+    then_ "it shows the matching pre-rendered figure with its data table below it"
+    check deferred "the site is not built"
 
   scenario "variants and seeds remain visible"
     given "matched results with different direction, pcorr, optimiser or seed variants"
-    when "the user filters or groups the results"
-    then_ "the selected variants are shown, and seed spread is preserved without silently choosing a best seed"
-    check deferred "dashboard variant views are not built"
-
-  scenario "model comparison uses the matched cohort"
-    given "results from comparable models for a regime"
-    when "the user opens a model comparison view"
-    then_ "score distributions and per-catchment comparisons use only the matched catchments"
-    check deferred "matched dashboard comparisons are not built"
+    when "a figure is drawn for them"
+    then_ "the variants are labelled and seed spread is preserved without silently choosing a best seed"
+    check deferred "the figures are not rendered"
 
   scenario "scoreboard reports matched-cohort medians"
     given "matched metric results for multiple models and goals"
-    when "the scoreboard is rendered"
+    when "the scoreboard figure is drawn"
     then_ "each model-by-goal value is the median over the matched cohort"
-    check deferred "the median scoreboard is not built"
+    check deferred "the scoreboard is not rendered"
 
-  scenario "static view consumes exported data"
-    when "the dashboard is built and loaded"
-    then_ "it renders the Lean-generated export without recomputing metrics in TypeScript"
-    check deferred "the static dashboard is not built"
+  scenario "first slice is published"
+    given "the legacy PTGSK seNorge forward BOBYQA results"
+    when "the site is published"
+    then_ "it shows the scoreboard figure with its table for each pcorr setting"
+    check deferred "the first slice is not built"
+
+  scenario "site computes nothing"
+    when "the site is built and loaded"
+    then_ "it reads only the figure index and renders no metric computed in the browser"
+    check deferred "the site is not built"
 
 end ShyftBench

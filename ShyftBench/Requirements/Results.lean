@@ -23,7 +23,7 @@ requirement resultFiling where
 
 requirement matchedComparison where
   id "bench.compare.matched"
-  shall "Compare experiments only when forcing, periods, optimiser, goal functions and precipitation-correction settings match, and only over the catchments both experiments contain. Never compare across forcings. Preserve seed variants as a distribution and never silently select a best seed."
+  shall "Compare two results only along one chosen axis (model, goal, direction, precipitation correction, optimiser or seed): they differ in that axis and agree on all the others, over the catchments both contain. Forcing is never an axis; never compare across forcings. Preserve seed variants as a distribution and never silently select a best seed."
   strength must
 
   scenario "comparison uses the common catchments"
@@ -33,9 +33,15 @@ requirement matchedComparison where
 
   scenario "different forcings cannot be compared"
     given "two otherwise matching experiments use different forcings"
-    when "comparability is checked"
+    when "comparability is checked along any axis"
     then_ "the experiments are not comparable"
-    check deferred "forcing equality is not yet enforced by the experiment model"
+    check executable
+
+  scenario "arms differ only in the chosen axis"
+    given "two experiments comparable along an axis"
+    when "comparability holds"
+    then_ "they differ in the chosen axis and agree on every other axis"
+    check executable
 
 requirement snowCohort where
   id "bench.cohort.snow"

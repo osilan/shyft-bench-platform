@@ -12,7 +12,7 @@ namespace ShyftBench
 
 requirement smokeTier where
   id "bench.ci.smoke"
-  shall "Run a containerised smoke tier in CI from the pinned Shyft commit using a small DTSS and short forcing slice. Exercise one PTFSM2K calibration for KGE, catchment cid-10-178.1.0 and pcorr enabled, then run the metric and dashboard steps against recorded references."
+  shall "Run a containerised smoke tier in CI from the pinned Shyft commit using a small DTSS and short forcing slice. Exercise one PTFSM2K calibration for KGE and pcorr enabled on one mountain station drawn once at random from the frozen regime table with a recorded seed and fixed in Lean, then run the metric and figure steps against recorded references."
   strength must
 
   scenario "smoke run in CI"
@@ -20,10 +20,10 @@ requirement smokeTier where
     then_ "the smoke tier completes and its metrics match the recorded reference"
     check deferred "container and fixture are not built"
 
-  scenario "smoke calibration uses the selected variant"
-    when "the smoke calibration is planned"
-    then_ "it uses PTFSM2K, KGE, cid-10-178.1.0 and pcorr enabled"
-    check deferred "the smoke experiment fixture is not built"
+  scenario "smoke catchment is a mountain station"
+    when "the package builds"
+    then_ "the smoke station is in the mountain cohort of the frozen regime table and the smoke experiment is PTFSM2K, KGE, pcorr enabled"
+    check executable
 
 requirement sigma2Safety where
   id "bench.sigma2.safety"

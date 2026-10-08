@@ -31,6 +31,24 @@ requirement typedCatalogue where
     then_ "ids are unique, every planned experiment has work to do and its forcing covers both periods, and at least one run is planned"
     check executable
 
+  scenario "direction is derived from the periods"
+    given "a calibration period at the start of the simulation period, or inside it"
+    when "the experiment is classified"
+    then_ "it is forward when calibration starts the simulation and reverse when calibration starts later, and the validation period is the simulation minus the calibration"
+    check deferred "covered by guards on the legacy periods (D-010, D-019), not yet by a theorem"
+
+  scenario "legacy catchment lists"
+    given "a legacy entry imported from the archive"
+    when "the catalogue is loaded"
+    then_ "its catchment list is the stations that have result files"
+    check deferred "the archive is not imported yet, so legacy catchment lists are empty"
+
+  scenario "seed and SCE-UA variants"
+    given "legacy runs with seeds v00-v04 or the SCE-UA optimiser"
+    when "they are catalogued"
+    then_ "each seed and optimiser is a separate variant of its experiment"
+    check deferred "the seed and SCE-UA runs are not catalogued yet"
+
 requirement pinnedShyft where
   id "bench.shyft.pinned"
   shall "Run and answer Shyft questions from one pinned Shyft commit that provides every stack the catalogue plans, not from whatever branch a local clone has checked out."
@@ -55,13 +73,19 @@ requirement launchPrecondition where
 
 requirement launchFallback where
   id "bench.launch.fallback"
-  shall "When the pod cannot run a planned experiment, do not substitute a different stack or launch a fallback experiment; request an image built from the pinned commit and start no run."
+  shall "When the pod cannot run the planned experiment, follow the founder's choice: run the fallback experiment if the pod provides its stacks, or request a new image built from the pinned commit; never relabel the fallback as the planned experiment."
   strength must
 
-  scenario "missing PTFSM2K requests an image"
-    given "the pod lacks the stack in the active PTFSM2K plan"
+  scenario "image request starts nothing"
+    given "the pod lacks a planned stack and the founder chose to request an image"
     when "the launch decision is taken"
-    then_ "no experiment starts, no fallback stack is substituted, and the request names the pinned commit"
+    then_ "no experiment starts and the request names the pinned commit"
+    check executable
+
+  scenario "fallback runs only when the pod provides it"
+    given "the pod lacks a planned stack and the founder chose to run the fallback"
+    when "the launch decision is taken"
+    then_ "the fallback experiment starts under its own id if the pod provides its stacks, otherwise an image is requested, and the planned experiment never starts"
     check executable
 
 end ShyftBench

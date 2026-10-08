@@ -2,6 +2,7 @@ import LeanSpec.Design
 import LeanSpec.Snapshot
 import ShyftBench.Requirements
 import ShyftBench.Catalog
+import ShyftBench.Figures
 
 /-!
 # Design units
@@ -34,30 +35,53 @@ def pinnedShyftDesign : DesignUnit := {
 def launchPreconditionDesign : DesignUnit := {
   id := launchPrecondition.id
   interfaces := ⟨#[⟨"decideLaunch", by native_decide⟩, ⟨"LaunchDecision", by native_decide⟩], by native_decide⟩
-  tests := ⟨#[⟨"decideLaunch shyftLocalMaster", by native_decide⟩], by native_decide⟩
+  tests := ⟨#[⟨"decideLaunch shyftLocalMaster rpmfsm2kSnow ptfsm2kSnow", by native_decide⟩], by native_decide⟩
   theorems := #[⟨"ShyftBench.decideLaunch_runsOn", by native_decide⟩]
 }
 
 def launchFallbackDesign : DesignUnit := {
   id := launchFallback.id
-  interfaces := ⟨#[⟨"decideLaunch", by native_decide⟩, ⟨"LaunchDecision", by native_decide⟩], by native_decide⟩
-  tests := ⟨#[⟨"missing PTFFSM2K requests an image without a fallback", by native_decide⟩], by native_decide⟩
-  theorems := #[⟨"ShyftBench.decideLaunch_requestImage", by native_decide⟩]
+  interfaces := ⟨#[⟨"FallbackChoice", by native_decide⟩, ⟨"decideLaunch", by native_decide⟩], by native_decide⟩
+  tests := ⟨#[⟨"founder-selected fallback launches only when available", by native_decide⟩], by native_decide⟩
+  theorems := #[⟨"ShyftBench.decideLaunch_fallbackPolicy", by native_decide⟩]
 }
 
 def resultFilingDesign : DesignUnit := {
   id := resultFiling.id
   interfaces := ⟨#[⟨"ResultKey", by native_decide⟩, ⟨"Experiment.accepts", by native_decide⟩], by native_decide⟩
   tests := ⟨#[⟨"rpmfsm2kSnow rejects a PTFSM2K result", by native_decide⟩], by native_decide⟩
-  theorems := #[⟨"ShyftBench.rpmfsm2kSnow_rejects_other_stacks", by native_decide⟩]
+  theorems := #[⟨"ShyftBench.rpmfsm2kSnow_rejects_other_models", by native_decide⟩]
 }
 
 def matchedComparisonDesign : DesignUnit := {
   id := matchedComparison.id
   interfaces := ⟨#[⟨"Experiment.comparableWith", by native_decide⟩,
     ⟨"Experiment.matchedCohort", by native_decide⟩], by native_decide⟩
-  tests := ⟨#[⟨"rpmfsm2kSnow.comparableWith ptfsm2kSnow", by native_decide⟩], by native_decide⟩
-  theorems := #[⟨"ShyftBench.Experiment.matchedCohort_mem", by native_decide⟩]
+  tests := ⟨#[⟨"Experiment.comparableWith .direction forwardPeriodExample reversePeriodExample", by native_decide⟩,
+    ⟨"Experiment.comparableWith rejects another forcing", by native_decide⟩], by native_decide⟩
+  theorems := #[⟨"ShyftBench.Experiment.comparison_evidence", by native_decide⟩]
+}
+
+def smokeDesign : DesignUnit := {
+  id := smokeTier.id
+  interfaces := ⟨#[⟨"smokeExperiment", by native_decide⟩, ⟨"smokeStation", by native_decide⟩], by native_decide⟩
+  tests := ⟨#[⟨"smokeExperiment.wellFormed", by native_decide⟩], by native_decide⟩
+  theorems := #[⟨"ShyftBench.smoke_ok", by native_decide⟩]
+}
+
+def exportDesign : DesignUnit := {
+  id := exportData.id
+  interfaces := ⟨#[⟨"FigureSpec", by native_decide⟩, ⟨"figureGrid", by native_decide⟩,
+    ⟨"gridMatches", by native_decide⟩], by native_decide⟩
+  tests := ⟨#[⟨"gridMatches rejects a missing figure", by native_decide⟩], by native_decide⟩
+  theorems := #[⟨"ShyftBench.figureGrid_ok", by native_decide⟩]
+}
+
+def dashboardDesign : DesignUnit := {
+  id := dashboard.id
+  interfaces := ⟨#[⟨"Experiment.comparableWith", by native_decide⟩], by native_decide⟩
+  tests := ⟨#[⟨"Experiment.comparableWith rejects another forcing", by native_decide⟩], by native_decide⟩
+  theorems := #[⟨"ShyftBench.Experiment.comparableWith_same_forcing", by native_decide⟩]
 }
 
 def snowCohortDesign : DesignUnit := {
@@ -75,7 +99,8 @@ def allRequirements : Array Requirement := #[
 
 def allDesigns : Array DesignUnit := #[
   catalogueDesign, pinnedShyftDesign, launchPreconditionDesign, launchFallbackDesign,
-  resultFilingDesign, matchedComparisonDesign, snowCohortDesign]
+  resultFilingDesign, matchedComparisonDesign, snowCohortDesign, smokeDesign, exportDesign,
+  dashboardDesign]
 
 def specSnapshot : SpecSnapshot := {
   requirements := allRequirements

@@ -17,7 +17,7 @@ structure Decision where
 
 def decisions : List Decision := [
   { id := "D-001", date := "2026-10-01"
-    decided := "First new experiment: RPMFSM2K (r_pm_fsm2_k) on the snow-dominated cohort, pinned to shyft origin/master at bfbdbe63c or later."
+    decided := "Superseded for the active FSM2 plan by D-016: the original first new experiment was RPMFSM2K (r_pm_fsm2_k) on the snow-dominated cohort, pinned to shyft origin/master at bfbdbe63c or later."
     why := "r_pm_fsm2_k is on origin/master with Python bindings and DRMS support; the local master (2026-04-06) and the fsm_tin_1403 checkout lack it."
     refines := ["bench.shyft.pinned", "bench.experiment.catalogue"] },
   { id := "D-002", date := "2026-10-01"
@@ -76,14 +76,34 @@ def decisions : List Decision := [
     decided := "Forcing selects the experiment and is not a comparison axis: seNorge2018 is the main/default experiment, AIFS is separate, and results are never compared across forcings. Derive direction from calibration and simulation periods. Import SCE-UA alongside BOBYQA. Preserve seeds v00-v04 as a variant axis and show their spread without silently selecting the best."
     why := "Forcings have different coverage and catchments; direction, optimiser and seed are analysis dimensions whose effects must remain explicit."
     refines := ["bench.experiment.catalogue", "bench.compare.matched", "bench.dashboard", "bench.export"] },
-  { id := "D-016", date := "2026-10-06"
-    decided := "Supersede D-001 for the active FSM2 plan and D-002's PTFSM2K fallback clause: PTFSM2K is the only active planned FSM2 stack; RPMFSM2K is future work. Keep the pod-build precondition, but do not substitute another stack for the active PTFSM2K experiment; request a suitable image if the pod lacks it. Catalogue AIFS experiments with their own periods and catchments; LSTM forward/reverse runs from lstm_baseline/runs/shyft_lstm_{forward,reverse}_*; seeds v00-v04; SCE-UA legacy runs such as ptgsk_bc/*_sceua.csv; and actual legacy catchment lists. The first vertical slice is the read-only legacy PTGSK seNorge forward result, both pcorr settings and BOBYQA. The CI smoke calibration is PTFSM2K, KGE, cid-10-178.1.0 and pcorr enabled."
-    why := "The currently available pod supports PTFSM2K, while the export and dashboard can be developed against a small, reproducible legacy slice. The smoke parameters are fixed to make the CI reference deterministic."
-    refines := ["bench.experiment.catalogue", "bench.shyft.pinned", "bench.launch.precondition", "bench.launch.fallback", "bench.results.filing", "bench.ci.smoke", "bench.dashboard"] },
+  { id := "D-016", date := "2026-10-08"
+    decided := "PTFSM2K is the active FSM2 experiment; RPMFSM2K is a future experiment with Provenance.future. D-001 is superseded for the active plan."
+    why := "The active plan uses the stack available on the current pod; RPMFSM2K remains catalogued for a later compatible pod."
+    refines := ["bench.experiment.catalogue", "bench.shyft.pinned"] },
   { id := "D-017", date := "2026-10-08"
-    decided := "Use a mixed dashboard export: JSON for canonical definitions, catalogue and manifest; GeoJSON for catchment geometries; partitioned Parquet for the metrics table and per-catchment, per-experiment series."
-    why := "JSON keeps small specification metadata inspectable, GeoJSON is directly usable for map features, and columnar Parquet suits the larger tabular metrics and time-series data without requiring clients to load the full dataset."
-    refines := ["bench.export"] }
+    decided := "Store the internal long metrics table as Parquet; store each published figure's data table as CSV and the manifest, figure index, canon and catalogue as JSON. The site publishes SVG figures and their CSV tables, but no daily series. Use figure-grid option 2: at most 48 aggregate figures and 10 catchment-detail figures; build the first-slice option 1 scoreboard first, with one figure for each pcorr setting."
+    why := "Parquet serves internal analysis; CSV tables are simple for publication; JSON keeps small metadata inspectable. The bounded grid supports the paper views without unbounded variant expansion, and the two-figure first slice verifies the pipeline."
+    refines := ["bench.export", "bench.dashboard"] },
+  { id := "D-018", date := "2026-10-08"
+    decided := "Compare results along exactly one selected axis (model, goal, direction, pcorr, optimiser or seed), matching every other axis and forcing over the matched catchments. Forcing is never an axis and cross-forcing comparison is forbidden."
+    why := "This permits the intended forward/reverse, BOBYQA/SCE-UA and model comparisons without mixing forcing effects."
+    refines := ["bench.compare.matched"] },
+  { id := "D-019", date := "2026-10-08"
+    decided := "Define validation as simulation minus calibration. Derive direction and validation intervals from periods and guard both D-010 forward and reverse cases."
+    why := "Validation is the simulated interval not used in calibration; daily intervals are represented exactly even when subtraction leaves two disjoint segments."
+    refines := ["bench.experiment.catalogue", "bench.dashboard"] },
+  { id := "D-020", date := "2026-10-08"
+    decided := "Publish paper-quality SVG figures with a CSV data table below each figure. The static site uses only the Lean-generated figure index, selects forcing first and then variants, computes nothing, and publishes no daily series. Python renders every figure for both the site and paper."
+    why := "The publication should present final reproducible figures rather than browser calculations or a large raw-series payload."
+    refines := ["bench.dashboard", "bench.export"] },
+  { id := "D-021", date := "2026-10-08"
+    decided := "D-002 stands: when the pod lacks a planned stack, the founder chooses either a separately identified, runnable fallback experiment or an image request. Fallback results are never relabelled as the planned experiment."
+    why := "Fallback runs remain useful while preserving experiment identity and provenance."
+    refines := ["bench.launch.fallback", "bench.results.filing"] },
+  { id := "D-022", date := "2026-10-08"
+    decided := "Choose one station uniformly from Regime.mountain using recorded seed 20261008; it selected station 122.14. Fix that station in the CI smoke experiment and guard that it is in the frozen mountain cohort. Keep PTFSM2K, KGE and pcorr enabled."
+    why := "A single recorded draw gives a representative mountain smoke catchment while keeping CI deterministic."
+    refines := ["bench.ci.smoke"] }
 ]
 
 end ShyftBench
