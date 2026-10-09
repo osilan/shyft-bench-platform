@@ -113,8 +113,9 @@ def check_dist(dist: Path, scope: str) -> list[str]:
                 problems.append(f"{rel}: file missing")
             elif recorded.get(rel) != sha256(file.read_bytes()):
                 problems.append(f"{rel}: checksum differs from the manifest")
-    for folder in (FIGURES, TABLES):
-        for file in sorted((dist / folder).glob("*")) if (dist / folder).is_dir() else []:
-            if f"{folder}/{file.name}" not in listed:
-                problems.append(f"{folder}/{file.name}: file is not in the figure index")
+    allowed = listed | {"figure-index.json", "manifest.json"}
+    for file in sorted(path for path in dist.rglob("*") if path.is_file()):
+        rel = file.relative_to(dist).as_posix()
+        if rel not in allowed:
+            problems.append(f"{rel}: file is not in the figure index")
     return problems
