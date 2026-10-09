@@ -83,13 +83,25 @@ def Experiment.validationPeriods? (e : Experiment) : Option (List DayInterval) :
 def Experiment.wellFormed (e : Experiment) : Bool :=
   !e.models.isEmpty && !e.goals.isEmpty && !e.catchments.isEmpty && !e.pcorr.isEmpty &&
     e.forcing.covers e.calibration && e.forcing.covers e.simulation &&
-    e.direction?.isSome && e.validationPeriods?.isSome &&
+    e.direction?.isSome &&
+    (match e.validationPeriods? with
+     | some periods => !periods.isEmpty
+     | none => false) &&
     e.seeds.eraseDups.length == e.seeds.length
 
 /-- Number of runs across model, goal, catchment, pcorr and seed variants. -/
 def Experiment.runCount (e : Experiment) : Nat :=
   e.models.length * e.goals.length * e.catchments.length * e.pcorr.length *
     (if e.seeds.isEmpty then 1 else e.seeds.length)
+
+/-- Expand pcorr and seed combinations into single-axis variants. An empty seed list represents
+one unseeded variant. -/
+def Experiment.variants (e : Experiment) : List Experiment :=
+  e.pcorr.flatMap fun pcorr =>
+    if e.seeds.isEmpty then
+      [{ e with pcorr := [pcorr] }]
+    else
+      e.seeds.map fun seed => { e with pcorr := [pcorr], seeds := [seed] }
 
 /-- Every Shyft model is in the build; the external LSTM model is not gated on Shyft. -/
 def Experiment.runsOn (e : Experiment) (b : ShyftBuild) : Bool :=
@@ -314,6 +326,10 @@ def forwardPeriodExample : Experiment where
   pcorr := [true]
   seeds := [.v00]
 
+def shortForwardValidationExample : Experiment :=
+  { forwardPeriodExample with
+    simulation := ⟨benchCalibration.start, benchCalibration.days + 100⟩ }
+
 def reversePeriodExample : Experiment :=
   { forwardPeriodExample with
     id := "reverse-period-example"
@@ -330,6 +346,9 @@ def validationSegmentExample (days : Nat) : Experiment :=
     simulation := ⟨⟨2000, 1, 1⟩, days⟩ }
 
 #guard forwardPeriodExample.direction? == some .forward
+#guard shortForwardValidationExample.direction? == some .forward &&
+  shortForwardValidationExample.validationPeriods? == some [] &&
+  !shortForwardValidationExample.wellFormed
 #guard reversePeriodExample.direction? == some .reverse
 #guard middlePeriodExample.direction? == none
 #guard (validationSegmentExample 364).validationPeriods? == some []
@@ -354,7 +373,7 @@ def pcorrExample : Experiment := { forwardPeriodExample with pcorr := [false] }
 def seedExample : Experiment := { forwardPeriodExample with seeds := [.v01] }
 def modelExample : Experiment := { forwardPeriodExample with models := [.shyft .rpmstk] }
 def goalExample : Experiment := { forwardPeriodExample with goals := [.nse] }
-def otherForcingExample : Experiment := { forwardPeriodExample with forcing := .aifs }
+def otherForcingExample : Experiment := { modelExample with forcing := .aifs }
 def overlappingModelLeft : Experiment :=
   { forwardPeriodExample with models := [.shyft .ptgsk, .shyft .rpmstk] }
 def overlappingModelRight : Experiment :=
@@ -369,6 +388,8 @@ def overlappingPcorrLeft : Experiment := { forwardPeriodExample with pcorr := [t
 def overlappingPcorrRight : Experiment := { forwardPeriodExample with pcorr := [true, true] }
 def overlappingSeedLeft : Experiment := { forwardPeriodExample with seeds := [.v00, .v01] }
 def overlappingSeedRight : Experiment := { forwardPeriodExample with seeds := [.v00, .v02] }
+def pcorrSeedVariantsExample : Experiment :=
+  { forwardPeriodExample with pcorr := [false, true], seeds := [.v00, .v01] }
 
 #guard Experiment.comparableWith .direction forwardPeriodExample reversePeriodExample
 #guard Experiment.comparableWith .optimizer forwardPeriodExample optimizerExample
@@ -376,6 +397,8 @@ def overlappingSeedRight : Experiment := { forwardPeriodExample with seeds := [.
 #guard Experiment.comparableWith .seed forwardPeriodExample seedExample
 #guard Experiment.comparableWith .model forwardPeriodExample modelExample
 #guard Experiment.comparableWith .goal forwardPeriodExample goalExample
+#guard pcorrSeedVariantsExample.variants.map (fun variant => (variant.pcorr, variant.seeds)) ==
+  [([false], [.v00]), ([false], [.v01]), ([true], [.v00]), ([true], [.v01])]
 #guard !Experiment.comparableWith .model overlappingModelLeft overlappingModelRight
 #guard !Experiment.comparableWith .model overlappingModelLeft reorderedModel
 #guard Experiment.comparableWith .goal overlappingModelLeft reorderedModelGoal

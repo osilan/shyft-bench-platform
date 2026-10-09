@@ -23,6 +23,7 @@ def catalogueDesign : DesignUnit := {
   functions := #[⟨"Catalog.ok", by native_decide⟩, ⟨"Catalog.live", by native_decide⟩]
   tests := ⟨#[⟨"Catalog.ok catalog", by native_decide⟩,
     ⟨"forwardPeriodExample.direction? == some .forward", by native_decide⟩,
+    ⟨"short forward experiment with 100 validation days is rejected", by native_decide⟩,
     ⟨"reversePeriodExample.direction? == some .reverse", by native_decide⟩,
     ⟨"middlePeriodExample.direction? == none", by native_decide⟩,
     ⟨"direction and validation boundary guards", by native_decide⟩], by native_decide⟩
@@ -60,9 +61,13 @@ def resultFilingDesign : DesignUnit := {
 
 def matchedComparisonDesign : DesignUnit := {
   id := matchedComparison.id
-  interfaces := ⟨#[⟨"Experiment.comparableWith", by native_decide⟩,
+  interfaces := ⟨#[⟨"Experiment.variants", by native_decide⟩,
+    ⟨"Experiment.comparableWith", by native_decide⟩,
     ⟨"Experiment.matchedCohort", by native_decide⟩], by native_decide⟩
   tests := ⟨#[⟨"Experiment.comparableWith .direction forwardPeriodExample reversePeriodExample", by native_decide⟩,
+    ⟨"pcorrSeedVariantsExample.variants splits pcorr and seed combinations", by native_decide⟩,
+    ⟨"legacyPtgskComparable pcorr variants compare along .pcorr", by native_decide⟩,
+    ⟨"legacy RPMSTK forward and reverse variants compare along .direction", by native_decide⟩,
     ⟨"Experiment.comparableWith rejects another forcing", by native_decide⟩,
     ⟨"Experiment.comparableWith rejects overlapping and reordered list axes", by native_decide⟩,
     ⟨"Experiment.comparableWith treats unchosen list order as irrelevant", by native_decide⟩],
