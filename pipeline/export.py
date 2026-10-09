@@ -113,7 +113,7 @@ def check_dist(dist: Path, scope: str) -> list[str]:
                 problems.append(f"{rel}: file missing")
             elif recorded.get(rel) != sha256(file.read_bytes()):
                 problems.append(f"{rel}: checksum differs from the manifest")
-    allowed = listed | {"figure-index.json", "manifest.json"}
+    allowed = listed | {"figure-index.json", "manifest.json", "canon.json", "catalogue.json"}
     for file in sorted(path for path in dist.rglob("*") if path.is_file()):
         rel = file.relative_to(dist).as_posix()
         if rel not in allowed:
