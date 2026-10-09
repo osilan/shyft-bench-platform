@@ -42,6 +42,10 @@ private def figureJson (f : FigureSpec) : Json :=
     ("pcorr", match f.pcorr with | some p => toJson p | none => Json.null),
     ("optimizer", str f.optimizer.key), ("station", optStr f.station)]
 
+private def optimumKey : MetricOptimum → String
+  | .higher => "higher" | .lower => "lower" | .targetOne => "target-1"
+  | .targetZero => "target-0" | .none => "none"
+
 private def canon : Json :=
   Json.mkObj [
     ("shyftPin", str shyftPin.commit),
@@ -51,7 +55,7 @@ private def canon : Json :=
     ("regimes", arr (Regime.all.map fun r =>
       Json.mkObj [("name", str r.name), ("colour", str r.colour), ("code", toJson r.code)])),
     ("metrics", arr (Metric.all.map fun m =>
-      Json.mkObj [("key", str m.key), ("higherIsBetter", toJson m.higherIsBetter)])),
+      Json.mkObj [("key", str m.key), ("optimum", str (optimumKey m.optimum))])),
     ("stations", arr (regimeTable.map fun (s, r) =>
       Json.mkObj [("id", str s), ("regime", str r.name)])),
     ("catalogue", arr (catalog.map entryJson)),
