@@ -19,7 +19,7 @@ requirement automateWorkflow where
     given "a planned experiment in the catalogue"
     when "the pipeline runs every stage"
     then_ "its metrics appear in the dashboard and every number traces to a run manifest"
-    check deferred "pipeline stages are not implemented"
+    check deferred "the Python first-slice ETL exists, but plan-to-Sigma2 runs, restartable stages, run manifests and site publication are missing"
 
 requirement typedCatalogue where
   id "bench.experiment.catalogue"
@@ -41,7 +41,7 @@ requirement typedCatalogue where
     given "a legacy entry imported from the archive"
     when "the catalogue is loaded"
     then_ "its catchment list is the stations that have result files"
-    check deferred "the archive is not imported yet, so legacy catchment lists are empty"
+    check deferred "Python reads legacy series, but result-file stations are not used to populate Lean catalogue entries"
 
   scenario "seed and SCE-UA variants"
     given "legacy runs with seeds v00-v04 or the SCE-UA optimiser"
