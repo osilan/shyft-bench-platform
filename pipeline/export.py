@@ -75,7 +75,8 @@ def manifest(artifacts: list[dict]) -> dict:
                           "earlier Shyft build whose commit is not recorded (unverified)"},
         "legacy_repo_commit": importer.legacy_git_commit(),
         "artifacts": [{**a, "code_commit": code["commit"],
-                       "shyft_commit": canon.load()["shyftPin"]} for a in artifacts],
+                       "shyft_commit": None,
+                       "platform_shyft_pin": canon.load()["shyftPin"]} for a in artifacts],
     }
 
 
