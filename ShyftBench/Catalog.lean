@@ -59,6 +59,17 @@ def legacyRpmstkReverse : Experiment :=
     id := "legacy-rpmstk-reverse"
     calibration := legacyReverseCalibration }
 
+def legacyComparisonStation : StationId := "109.29"
+
+def legacyPtgskComparable : Experiment :=
+  { legacyBench .ptgsk with catchments := [legacyComparisonStation] }
+
+def legacyRpmstkForwardComparable : Experiment :=
+  { legacyBench .rpmstk with catchments := [legacyComparisonStation] }
+
+def legacyRpmstkReverseComparable : Experiment :=
+  { legacyRpmstkReverse with catchments := [legacyComparisonStation] }
+
 def zenodoDoi : String := "10.5281/zenodo.15595323"
 
 def catalog : List Entry :=
@@ -105,6 +116,13 @@ def Catalog.live (c : List Entry) : Bool :=
 #guard Catalog.live catalog
 #guard Catalog.planned catalog == [⟨ptfsm2kSnow, .planned⟩]
 #guard legacyRpmstkReverse.direction? == some .reverse
+#guard legacyPtgskComparable.variants.map (·.pcorr) == [[false], [true]]
+#guard match legacyPtgskComparable.variants with
+  | [pcorrOff, pcorrOn] => Experiment.comparableWith .pcorr pcorrOff pcorrOn
+  | _ => false
+#guard match legacyRpmstkForwardComparable.variants, legacyRpmstkReverseComparable.variants with
+  | forward :: _, reverse :: _ => Experiment.comparableWith .direction forward reverse
+  | _, _ => false
 #guard (stationsIn .mountain)[18]? == some smokeStation
 #guard smokeExperiment.calibration ==
   (⟨⟨2015, 9, 1⟩, 731⟩ : Period)
