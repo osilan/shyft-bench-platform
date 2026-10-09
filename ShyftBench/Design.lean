@@ -21,7 +21,11 @@ def catalogueDesign : DesignUnit := {
   interfaces := ⟨#[⟨"Experiment", by native_decide⟩, ⟨"Entry", by native_decide⟩,
     ⟨"catalog", by native_decide⟩], by native_decide⟩
   functions := #[⟨"Catalog.ok", by native_decide⟩, ⟨"Catalog.live", by native_decide⟩]
-  tests := ⟨#[⟨"Catalog.ok catalog", by native_decide⟩], by native_decide⟩
+  tests := ⟨#[⟨"Catalog.ok catalog", by native_decide⟩,
+    ⟨"forwardPeriodExample.direction? == some .forward", by native_decide⟩,
+    ⟨"reversePeriodExample.direction? == some .reverse", by native_decide⟩,
+    ⟨"middlePeriodExample.direction? == none", by native_decide⟩,
+    ⟨"forward and reverse validation period guards", by native_decide⟩], by native_decide⟩
   theorems := #[⟨"ShyftBench.catalog_ok_live", by native_decide⟩]
 }
 
@@ -49,7 +53,8 @@ def launchFallbackDesign : DesignUnit := {
 def resultFilingDesign : DesignUnit := {
   id := resultFiling.id
   interfaces := ⟨#[⟨"ResultKey", by native_decide⟩, ⟨"Experiment.accepts", by native_decide⟩], by native_decide⟩
-  tests := ⟨#[⟨"rpmfsm2kSnow rejects a PTFSM2K result", by native_decide⟩], by native_decide⟩
+  tests := ⟨#[⟨"rpmfsm2kSnow rejects a PTFSM2K result", by native_decide⟩,
+    ⟨"rpmfsm2kSnow rejects an empty Shyft commit", by native_decide⟩], by native_decide⟩
   theorems := #[⟨"ShyftBench.rpmfsm2kSnow_rejects_other_models", by native_decide⟩]
 }
 
@@ -58,14 +63,18 @@ def matchedComparisonDesign : DesignUnit := {
   interfaces := ⟨#[⟨"Experiment.comparableWith", by native_decide⟩,
     ⟨"Experiment.matchedCohort", by native_decide⟩], by native_decide⟩
   tests := ⟨#[⟨"Experiment.comparableWith .direction forwardPeriodExample reversePeriodExample", by native_decide⟩,
-    ⟨"Experiment.comparableWith rejects another forcing", by native_decide⟩], by native_decide⟩
+    ⟨"Experiment.comparableWith rejects another forcing", by native_decide⟩,
+    ⟨"Experiment.comparableWith rejects overlapping and reordered list axes", by native_decide⟩,
+    ⟨"Experiment.comparableWith treats unchosen list order as irrelevant", by native_decide⟩],
+    by native_decide⟩
   theorems := #[⟨"ShyftBench.Experiment.comparison_evidence", by native_decide⟩]
 }
 
 def smokeDesign : DesignUnit := {
   id := smokeTier.id
   interfaces := ⟨#[⟨"smokeExperiment", by native_decide⟩, ⟨"smokeStation", by native_decide⟩], by native_decide⟩
-  tests := ⟨#[⟨"smokeExperiment.wellFormed", by native_decide⟩], by native_decide⟩
+  tests := ⟨#[⟨"smokeExperiment.wellFormed", by native_decide⟩,
+    ⟨"tests/test_smoke_draw.py", by native_decide⟩], by native_decide⟩
   theorems := #[⟨"ShyftBench.smoke_ok", by native_decide⟩]
 }
 
