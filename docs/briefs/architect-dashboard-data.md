@@ -1,5 +1,8 @@
 # Brief for the Architect: the dashboard's data
 
+> **History, frozen 2026-10-09.** Not read by agents. What is still true lives in
+> `ShyftBench/` (requirements, decisions, catalogue); new work is filed as issues.
+
 From the founder, 2026-10-06. Branch `spec/dashboard-data`.
 
 ## Goal

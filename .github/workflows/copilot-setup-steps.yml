@@ -1,7 +1,7 @@
 # Prepares the environment for GitHub's Copilot cloud agent (D-011): Python with the pinned
 # requirements and a built Lean package, so the agent can run scripts/gate.py itself.
 # GitHub runs the job named copilot-setup-steps before the agent starts; it only takes
-# effect on the default branch. Owned by DevOps.
+# effect on the default branch. Kept running by the Builder.
 # Sigma2 is not reachable from here (D-009): the cloud agent cannot collect or launch.
 name: Copilot setup steps
 
