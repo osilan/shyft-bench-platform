@@ -123,7 +123,11 @@ def decisions : List Decision := [
   { id := "D-027", date := "2026-10-09"
     decided := "Five agents instead of ten: Architect (spec and issues only, never builds), Builder (Backend, Frontend, DevOps and Documentation merged; also the cloud agent's rules), Reviewer (Lean and Code Reviewer merged), Sigma2 Guru and Independent Auditor; the Researcher's experiment plans move to the Architect. Supersedes D-008's separate Documentation agent. Work is handed out only as GitHub issues, one pull request per issue straight into main; no integration branches or review rounds. In pull requests the gate accepts added statements only, and a changed statement needs the founder's label statements-approved. Briefs in docs/briefs/ are history."
     why := "The Architect carried the whole brief history in context and did the work itself instead of delegating; three coordination channels (brief, subagents, issues) and two branch levels added steps without adding checks."
-    refines := ["bench.docs", "bench.audit.independent"] }
+    refines := ["bench.docs", "bench.audit.independent"] },
+  { id := "D-028", date := "2026-10-09"
+    decided := "Render cumulative distributions as small multiples by goal and metric: both specified KGE formulations, KGE(1/Q), and each Ruzzante decomposition metric. Within each panel, model curves use the same finite matched cohort; keep forcing, direction, pcorr and optimiser fixed, and preserve distinct seed observations rather than choosing a best seed."
+    why := "This exposes the selected metric variants while keeping each model comparison matched and making seed spread visible without silently selecting a seed."
+    refines := ["bench.dashboard", "bench.export", "bench.compare.matched"] }
 ]
 
 end ShyftBench
