@@ -23,6 +23,7 @@ def catalogueDesign : DesignUnit := {
   functions := #[⟨"Catalog.ok", by native_decide⟩, ⟨"Catalog.live", by native_decide⟩]
   tests := ⟨#[⟨"Catalog.ok catalog", by native_decide⟩,
     ⟨"forwardPeriodExample.direction? == some .forward", by native_decide⟩,
+    ⟨"short forward experiment with 100 validation days is rejected", by native_decide⟩,
     ⟨"reversePeriodExample.direction? == some .reverse", by native_decide⟩,
     ⟨"middlePeriodExample.direction? == none", by native_decide⟩,
     ⟨"forward and reverse validation period guards", by native_decide⟩], by native_decide⟩

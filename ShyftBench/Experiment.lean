@@ -83,7 +83,10 @@ def Experiment.validationPeriods? (e : Experiment) : Option (List DayInterval) :
 def Experiment.wellFormed (e : Experiment) : Bool :=
   !e.models.isEmpty && !e.goals.isEmpty && !e.catchments.isEmpty && !e.pcorr.isEmpty &&
     e.forcing.covers e.calibration && e.forcing.covers e.simulation &&
-    e.direction?.isSome && e.validationPeriods?.isSome &&
+    e.direction?.isSome &&
+    (match e.validationPeriods? with
+     | some periods => !periods.isEmpty
+     | none => false) &&
     e.seeds.eraseDups.length == e.seeds.length
 
 /-- Number of runs across model, goal, catchment, pcorr and seed variants. -/
@@ -314,6 +317,10 @@ def forwardPeriodExample : Experiment where
   pcorr := [true]
   seeds := [.v00]
 
+def shortForwardValidationExample : Experiment :=
+  { forwardPeriodExample with
+    simulation := ⟨benchCalibration.start, benchCalibration.days + 100⟩ }
+
 def reversePeriodExample : Experiment :=
   { forwardPeriodExample with
     id := "reverse-period-example"
@@ -325,6 +332,9 @@ def middlePeriodExample : Experiment :=
     calibration := ⟨⟨1990, 1, 1⟩, 3652⟩ }
 
 #guard forwardPeriodExample.direction? == some .forward
+#guard shortForwardValidationExample.direction? == some .forward &&
+  shortForwardValidationExample.validationPeriods? == some [] &&
+  !shortForwardValidationExample.wellFormed
 #guard reversePeriodExample.direction? == some .reverse
 #guard middlePeriodExample.direction? == none
 #guard forwardPeriodExample.validationPeriods? ==
