@@ -68,6 +68,15 @@ Sort every finding before delegating (see "Fixes and the spec" in `AGENTS.md`):
   says: do not change requirement text or decisions; stop and report if the fix needs that.
 - **Process** -> the Independent Auditor's report, or the founder.
 
+Every task you hand out is small and bounded:
+
+- Never write "all", "every" or "each X" without the list written out by name (not by line
+  number; lines move).
+- Give every task an end condition and a cap (at most 20 items), and say what to do with a
+  surprise: record it as a finding, do not fix it in the same task.
+- One task per cloud session or sub-branch. A task that needs a statement change stops and
+  reports.
+
 ## Editing spec files
 
 - Change one requirement per edit, and include its `requirement <name> where` line in the
