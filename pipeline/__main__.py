@@ -8,7 +8,6 @@ import pandas as pd
 
 from . import canon, export, figures, table
 
-SLICE_MODELS = ["ptgsk"]
 INTERNAL = canon.ROOT / "build" / "metrics"
 
 
@@ -22,6 +21,19 @@ def experiment_for(spec: dict, model: str) -> dict:
     return found[0]
 
 
+def slice_models(spec: dict) -> list[str]:
+    eligible = {
+        model
+        for experiment in canon.load()["catalogue"]
+        if experiment["provenance"] == "zenodo-import"
+        and experiment["forcing"] == spec["forcing"]
+        and experiment["direction"] == spec["direction"]
+        and experiment["optimizer"] == spec["optimizer"]
+        for model in experiment["models"]
+    }
+    return [model["key"] for model in canon.load()["models"] if model["key"] in eligible]
+
+
 def parquet_bytes(frame: pd.DataFrame) -> bytes:
     buffer = io.BytesIO()
     frame.to_parquet(buffer, engine="pyarrow", index=False, compression="zstd")
@@ -33,14 +45,15 @@ def build(dist: Path) -> int:
     for spec in specs:
         if spec["view"] != "scoreboard":
             raise NotImplementedError(f"{spec['id']}: only the scoreboard view exists so far")
-    tables, sources = [], []
-    for model in SLICE_MODELS:
+    tables, sources, experiment_ids = [], [], []
+    for model in slice_models(specs[0]):
         experiment = experiment_for(specs[0], model)
         frame, srcs = table.build(experiment["id"], model, specs[0]["optimizer"])
         export.write_once(INTERNAL / f"{experiment['id']}.parquet", parquet_bytes(frame))
         tables.append(frame)
-        sources += [{"path": s.key, "sha256": s.sha256} for _, s in sorted(srcs.items())]
-        experiment_id = experiment["id"]
+        experiment_ids.append(experiment["id"])
+        sources += [{"experiment_id": experiment["id"], "path": s.key, "sha256": s.sha256}
+                    for _, s in sorted(srcs.items())]
     metrics = pd.concat(tables, ignore_index=True)
 
     artifacts, index = [], []
@@ -52,7 +65,7 @@ def build(dist: Path) -> int:
         export.write_once(dist / csv_rel, csv)
         for kind, rel, data in (("figure", svg_rel, svg), ("table", csv_rel, csv)):
             artifacts.append({"id": spec["id"], "kind": kind, "path": rel,
-                              "sha256": export.sha256(data), "experiment_id": experiment_id,
+                              "sha256": export.sha256(data), "experiment_ids": experiment_ids,
                               "sources": sources})
         index.append(export.index_entry(spec))
     (dist / "figure-index.json").write_bytes(export.dumps({"figures": index}))

@@ -17,13 +17,13 @@ from pipeline import canon, export, figures, importer, table  # noqa: E402
 from pipeline import __main__ as cli  # noqa: E402
 
 
-def long_table(values_off: dict, values_on: dict) -> pd.DataFrame:
+def long_table(values_off: dict, values_on: dict, model: str = "ptgsk") -> pd.DataFrame:
     """Headline KGE per station for pcorr off/on of one model and one goal."""
     rows = []
     for pcorr, values in ((False, values_off), (True, values_on)):
         for station, value in values.items():
             for metric in ("nse", "kge_gupta_2009", "kge_kling_2012", "pbias", "kge_1_over_q"):
-                rows.append(("e", "ptgsk", "kge", "seNorge", "forward", pcorr, "bobyqa", None,
+                rows.append(("e", model, "kge", "seNorge", "forward", pcorr, "bobyqa", None,
                              station, "validation", metric,
                              value if metric == "kge_gupta_2009" else 0.5, 10, "", ""))
     return pd.DataFrame(rows, columns=table.COLUMNS)
@@ -53,25 +53,68 @@ class CanonTest(unittest.TestCase):
 
 
 class BuildTest(unittest.TestCase):
-    def test_bench_export_build_publishes_canon_and_catalogue(self):
-        spec = {"id": "scoreboard-test", "view": "scoreboard", "forcing": "seNorge",
-                "direction": "forward", "pcorr": True, "optimizer": "bobyqa"}
+    def test_bench_dashboard_export_builds_scoreboards_for_all_legacy_stacks(self):
+        specs = canon.declared_figures("first-slice")
+        models = cli.slice_models(specs[0])
+        catalogue = canon.load()["catalogue"]
+        expected_models = [
+            model["key"] for model in canon.load()["models"]
+            if any(experiment["provenance"] == "zenodo-import"
+                   and experiment["forcing"] == specs[0]["forcing"]
+                   and experiment["direction"] == specs[0]["direction"]
+                   and experiment["optimizer"] == specs[0]["optimizer"]
+                   and model["key"] in experiment["models"]
+                   for experiment in catalogue)
+        ]
+        self.assertEqual(models, expected_models)
         with tempfile.TemporaryDirectory() as tmp:
             dist = Path(tmp) / "dist"
-            with (patch.object(cli.canon, "declared_figures", return_value=[spec]),
-                  patch.object(cli, "experiment_for", return_value={"id": "experiment"}),
-                  patch.object(cli.table, "build", return_value=(pd.DataFrame(), {})),
+            built_models, rendered_boards, manifest_artifacts = [], [], []
+
+            def build_table(experiment_id, model, optimizer):
+                built_models.append(model)
+                frame = long_table({"a": 0.1, "b": 0.3}, {"a": 0.2, "b": 0.4}, model)
+                sources = {
+                    (False, "kge"): importer.Source(f"{model}/off.csv", f"{model}-off"),
+                    (True, "kge"): importer.Source(f"{model}/on.csv", f"{model}-on"),
+                }
+                return frame, sources
+
+            def capture_manifest(artifacts):
+                manifest_artifacts.extend(artifacts)
+                return {"artifacts": artifacts}
+
+            with (patch.object(cli.table, "build", side_effect=build_table),
                   patch.object(cli, "parquet_bytes", return_value=b"parquet"),
-                  patch.object(cli.figures, "scoreboard_table", return_value=pd.DataFrame()),
-                  patch.object(cli.figures, "render_scoreboard", return_value=b"<svg/>"),
-                  patch.object(cli.figures, "table_csv", return_value=b"csv"),
-                  patch.object(cli.export, "manifest", return_value={}),
+                  patch.object(cli.figures, "render_scoreboard",
+                               side_effect=lambda board: rendered_boards.append(board) or b"<svg/>"),
+                  patch.object(cli.export, "manifest", side_effect=capture_manifest),
                   patch.object(cli.export, "check_dist", return_value=[]),
                   patch.object(cli, "INTERNAL", Path(tmp) / "internal")):
                 self.assertEqual(cli.build(dist), 0)
+            self.assertEqual(built_models, models)
+            self.assertEqual(len(rendered_boards), 2)
+            for board in rendered_boards:
+                self.assertEqual(set(board["model"]), set(models))
+                self.assertTrue({"median_nse", "median_kge_gupta_2009", "median_kge_kling_2012",
+                                 "median_pbias", "median_kge_1_over_q"}.issubset(board.columns))
+            self.assertEqual(len(list((Path(tmp) / "internal").glob("*.parquet"))), len(models))
+            expected_experiments = {
+                cli.experiment_for(specs[0], model)["id"] for model in models
+            }
+            self.assertEqual(len(manifest_artifacts), 4)
+            for artifact in manifest_artifacts:
+                self.assertEqual(set(artifact["experiment_ids"]), expected_experiments)
+                self.assertEqual(
+                    {source["experiment_id"] for source in artifact["sources"]},
+                    expected_experiments,
+                )
+                self.assertEqual(len(artifact["sources"]), len(models) * 2)
             self.assertEqual((dist / "canon.json").read_bytes(), canon.CANON_PATH.read_bytes())
             self.assertEqual(json.loads((dist / "catalogue.json").read_text()),
                              canon.load()["catalogue"])
+            manifest = json.loads((dist / "manifest.json").read_text())
+            self.assertEqual(manifest["artifacts"], manifest_artifacts)
 
 
 class ScoreboardTest(unittest.TestCase):
@@ -200,6 +243,13 @@ class FirstSliceTest(unittest.TestCase):
                 cli.INTERNAL = old
             index = json.loads((Path(tmp) / "dist" / "figure-index.json").read_text())
             self.assertEqual([f["id"] for f in index["figures"]], canon.load()["firstSlice"])
+            metrics_files = sorted((Path(tmp) / "metrics").glob("*.parquet"))
+            self.assertEqual(len(metrics_files), len(cli.slice_models(canon.declared_figures("first-slice")[0])))
+            expected_metrics = {metric["key"] for metric in canon.load()["metrics"]}
+            for path in metrics_files:
+                metrics = pd.read_parquet(path)
+                self.assertEqual(set(metrics["metric"]), expected_metrics)
+                self.assertEqual(metrics["model"].nunique(), 1)
 
 
 if __name__ == "__main__":
