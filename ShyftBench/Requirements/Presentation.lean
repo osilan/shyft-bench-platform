@@ -78,10 +78,10 @@ requirement dashboard where
     check deferred "Python CDF behavior is not covered by Lean guards; LeanSpec has no Python target"
 
   scenario "first slice is published"
-    given "the legacy PTGSK seNorge forward BOBYQA results"
+    given "the legacy seNorge forward BOBYQA results for ptgsk, ptstk, ptsthbv, rpmgsk and rpmstk"
     when "the site is published"
-    then_ "it shows the scoreboard figure with its table for each pcorr setting"
-    check deferred "the Python first-slice build exists, but the data-backed export and static site are not published"
+    then_ "it shows a scoreboard figure with its CSV table for each pcorr setting, containing all five stacks in canonical model order and each model-goal median over the matched catchment cohort"
+    check deferred "the five-stack build and static site are not yet published"
 
   scenario "site computes nothing"
     when "the site is built and loaded"
