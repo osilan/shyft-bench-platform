@@ -2,7 +2,7 @@
 # passed the Lean gate. Until dashboard/package.json exists it publishes
 # dashboard/placeholder/. Every published file is listed in SHA256SUMS and gets a signed
 # build-provenance attestation, so a number on the site traces to the commit and workflow
-# that built it. Owned by DevOps.
+# that built it. Kept running by the Builder.
 name: Pages
 
 on:

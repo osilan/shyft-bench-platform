@@ -20,7 +20,7 @@ python3 scripts/gate.py init      # first time a Lean library exists
 ```
 
 Ownership: **Independent Auditor** defines the checks and baselines (they only tighten),
-**DevOps** keeps the workflow running, **Backend Developer** keeps it green. The
+the **Builder** keeps the workflow running and the gate green. The
 workspace hook (`.github/hooks/lean-gate.json`) asks before any agent edits a
 gate-owned file, or a file listed under `frozen` in `gate.json` (add the
 requirements file there once the spec is frozen).
@@ -30,7 +30,8 @@ gate of record. The cloud agent's environment is prepared by
 `.github/workflows/copilot-setup-steps.yml`, so it can run the gate itself, and the
 `main` ruleset (`.github/rulesets/main-gate.json`) requires the `gate` job to pass.
 
-In CI, pull requests into a review branch (any base except `main`) run
-`gate.py check --no-committed --mode append-only --against <base fingerprint>`: new checks and
-theorems pass, changed or removed statements fail. Pushes to `main` and pull requests into `main`
-run the strict `gate.py check`, so the committed fingerprint must be current there.
+Every pull request goes into `main`. In CI a pull request runs
+`gate.py check --mode append-only --against <base fingerprint>`: the committed fingerprint must
+match the build, and new checks and theorems pass while changed or removed statements fail. The
+founder approves a statement change by adding the label `statements-approved`, which switches
+the pull request to the strict `gate.py check`. Pushes to `main` are always strict.
