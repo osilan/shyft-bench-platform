@@ -49,6 +49,7 @@ structure DayInterval where
   deriving Repr, DecidableEq, Inhabited
 
 def DayInterval.days (p : DayInterval) : Nat := (p.endDay - p.startDay).toNat
+def minimumValidationDays : Nat := 365
 
 /-- Direction is derived from which simulation boundary contains calibration. -/
 def Experiment.direction? (e : Experiment) : Option Direction :=
@@ -56,21 +57,26 @@ def Experiment.direction? (e : Experiment) : Option Direction :=
       e.calibration.endDay < e.simulation.endDay then some .forward
   else if e.calibration.startDay > e.simulation.startDay &&
       e.calibration.startDay < e.simulation.endDay &&
-      e.calibration.endDay ≤ e.simulation.endDay then some .reverse
+      e.calibration.endDay ≤ e.simulation.endDay &&
+      (e.simulation.endDay - e.calibration.endDay).toNat ≤ minimumValidationDays then
+    some .reverse
   else none
 
 /-- Validation is the simulation interval minus calibration; it may have two segments if the
-calibration does not exactly touch a simulation boundary. -/
+calibration does not exactly touch a simulation boundary. Segments shorter than one year are
+dropped. -/
 def Experiment.validationPeriods? (e : Experiment) : Option (List DayInterval) :=
+  let keepLongEnough (periods : List DayInterval) :=
+    periods.filter fun period => decide (minimumValidationDays ≤ period.days)
   if e.calibration.startDay == e.simulation.startDay &&
       e.calibration.endDay < e.simulation.endDay then
-    some [⟨e.calibration.endDay, e.simulation.endDay⟩]
+    some (keepLongEnough [⟨e.calibration.endDay, e.simulation.endDay⟩])
   else if e.calibration.startDay > e.simulation.startDay &&
       e.calibration.startDay < e.simulation.endDay &&
       e.calibration.endDay ≤ e.simulation.endDay then
-    some ([⟨e.simulation.startDay, e.calibration.startDay⟩] ++
+    some (keepLongEnough ([⟨e.simulation.startDay, e.calibration.startDay⟩] ++
       (if e.calibration.endDay < e.simulation.endDay then
-        [⟨e.calibration.endDay, e.simulation.endDay⟩] else []))
+        [⟨e.calibration.endDay, e.simulation.endDay⟩] else [])))
   else none
 
 /-- Well-formed: a directional calibration/validation split exists and forcing covers both periods. -/
@@ -303,17 +309,27 @@ def reversePeriodExample : Experiment :=
     id := "reverse-period-example"
     calibration := legacyReverseCalibration }
 
+def middlePeriodExample : Experiment :=
+  { forwardPeriodExample with
+    id := "middle-period-example"
+    calibration := ⟨⟨1990, 1, 1⟩, 3652⟩ }
+
 #guard forwardPeriodExample.direction? == some .forward
 #guard reversePeriodExample.direction? == some .reverse
+#guard middlePeriodExample.direction? == none
 #guard forwardPeriodExample.validationPeriods? ==
   some [⟨benchCalibration.endDay, benchSimulation.endDay⟩]
 #guard reversePeriodExample.validationPeriods? ==
-  some [⟨benchSimulation.startDay, legacyReverseCalibration.startDay⟩,
-    ⟨legacyReverseCalibration.endDay, benchSimulation.endDay⟩]
+  some [⟨benchSimulation.startDay, legacyReverseCalibration.startDay⟩]
+#guard middlePeriodExample.validationPeriods? ==
+  some [⟨benchSimulation.startDay, middlePeriodExample.calibration.startDay⟩,
+    ⟨middlePeriodExample.calibration.endDay, benchSimulation.endDay⟩]
 #guard (forwardPeriodExample.validationPeriods?).get!.head!.days ==
   benchSimulation.days - benchCalibration.days
 #guard (reversePeriodExample.validationPeriods?).get!.head!.days ==
   (legacyReverseCalibration.startDay - benchSimulation.startDay).toNat
+#guard (reversePeriodExample.validationPeriods?).get!.all fun period =>
+  minimumValidationDays ≤ period.days
 
 def optimizerExample : Experiment := { forwardPeriodExample with optimizer := .sceua }
 def pcorrExample : Experiment := { forwardPeriodExample with pcorr := [false] }
