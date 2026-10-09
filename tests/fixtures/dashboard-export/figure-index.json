@@ -1,0 +1,24 @@
+{
+  "figures": [
+    {
+      "id": "scoreboard-seNorge-dir-forward-pcorr-off-bobyqa",
+      "view": "scoreboard",
+      "forcing": "seNorge",
+      "direction": "forward",
+      "pcorr": false,
+      "optimizer": "bobyqa",
+      "svg": "figures/scoreboard-seNorge-dir-forward-pcorr-off-bobyqa.svg",
+      "csv": "tables/scoreboard-seNorge-dir-forward-pcorr-off-bobyqa.csv"
+    },
+    {
+      "id": "scoreboard-seNorge-dir-forward-pcorr-on-bobyqa",
+      "view": "scoreboard",
+      "forcing": "seNorge",
+      "direction": "forward",
+      "pcorr": true,
+      "optimizer": "bobyqa",
+      "svg": "figures/scoreboard-seNorge-dir-forward-pcorr-on-bobyqa.svg",
+      "csv": "tables/scoreboard-seNorge-dir-forward-pcorr-on-bobyqa.csv"
+    }
+  ]
+}

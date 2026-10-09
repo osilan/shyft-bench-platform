@@ -1,0 +1,12 @@
+{
+  "name": "shyft-bench-dashboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && cp index.html dist/index.html && cp site/style.css dist/style.css && cp -R ../tests/fixtures/dashboard-export/. dist/",
+    "test": "tsc -p tsconfig.test.json && node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}
