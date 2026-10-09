@@ -127,6 +127,10 @@ def decisions : List Decision := [
   { id := "D-028", date := "2026-10-09"
     decided := "Render cumulative distributions as small multiples by goal and metric: both specified KGE formulations, KGE(1/Q), and each Ruzzante decomposition metric. Within each panel, model curves use the same finite matched cohort; keep forcing, direction, pcorr and optimiser fixed, and preserve distinct seed observations rather than choosing a best seed."
     why := "This exposes the selected metric variants while keeping each model comparison matched and making seed spread visible without silently selecting a seed."
+    refines := ["bench.dashboard", "bench.export", "bench.compare.matched"] },
+  { id := "D-029", date := "2026-10-09"
+    decided := "The published first slice is the seNorge forward BOBYQA scoreboard for all five legacy Shyft stacks: ptgsk, ptstk, ptsthbv, rpmgsk and rpmstk. Publish one SVG figure with its CSV table for each precipitation-correction setting; include all five stacks in canonical model order and use matched catchment cohorts for model-goal medians."
+    why := "A PTGSK-only first slice cannot exercise the planned matched cross-stack comparison; the five named legacy stacks share the selected forcing, direction and optimiser."
     refines := ["bench.dashboard", "bench.export", "bench.compare.matched"] }
 ]
 
