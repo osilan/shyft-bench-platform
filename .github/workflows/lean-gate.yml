@@ -38,5 +38,20 @@ jobs:
           build: true
           use-github-cache: true
 
+      # Pull requests into a review branch (not main): checks and theorems may only be added.
+      # Any changed or removed statement fails and waits for the founder. The founder records
+      # the additions in audit/fingerprint.tsv once, before the review branch goes to main.
+      - name: Lean gate (append-only against the base branch)
+        if: github.event_name == 'pull_request' && github.base_ref != 'main'
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          git fetch --depth=1 origin "$BASE"
+          git show "FETCH_HEAD:audit/fingerprint.tsv" > "$RUNNER_TEMP/base-fingerprint.tsv"
+          python scripts/gate.py check --no-committed --mode append-only \
+            --against "$RUNNER_TEMP/base-fingerprint.tsv"
+
+      # main, and pull requests into main: the committed fingerprint must be current.
       - name: Lean gate
+        if: github.event_name != 'pull_request' || github.base_ref == 'main'
         run: python scripts/gate.py check
