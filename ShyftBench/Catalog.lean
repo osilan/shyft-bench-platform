@@ -54,13 +54,17 @@ def legacyBench (s : Stack) : Experiment where
   simulation := benchSimulation
   pcorr := [false, true]
 
+def legacyRpmstkReverse : Experiment :=
+  { legacyBench .rpmstk with
+    id := "legacy-rpmstk-reverse"
+    calibration := legacyReverseCalibration }
+
 def zenodoDoi : String := "10.5281/zenodo.15595323"
 
 def catalog : List Entry :=
   [.ptgsk, .ptstk, .ptsthbv, .rpmgsk].map (fun s => ⟨legacyBench s, .zenodoImport zenodoDoi⟩) ++
   [⟨legacyBench .rpmstk, .zenodoImport zenodoDoi⟩,
-   ⟨{ legacyBench .rpmstk with id := "legacy-rpmstk-reverse" },
-     .dtssCollect "/shyft-var/dtss/db/se-bench"⟩,
+   ⟨legacyRpmstkReverse, .dtssCollect "/shyft-var/dtss/db/se-bench"⟩,
    ⟨rpmfsm2kSnow, .future⟩,
    ⟨ptfsm2kSnow, .planned⟩]
 
@@ -76,6 +80,8 @@ def smokeExperiment : Experiment :=
     id := "ptfsm2k-smoke"
     goals := [.kge]
     catchments := [smokeStation]
+    calibration := ⟨⟨2015, 9, 1⟩, 731⟩
+    simulation := ⟨⟨2015, 9, 1⟩, 1096⟩
     pcorr := [true] }
 
 def Catalog.ids (c : List Entry) : List String := c.map (·.experiment.id)
@@ -98,7 +104,14 @@ def Catalog.live (c : List Entry) : Bool :=
 #guard Catalog.ok catalog
 #guard Catalog.live catalog
 #guard Catalog.planned catalog == [⟨ptfsm2kSnow, .planned⟩]
+#guard legacyRpmstkReverse.direction? == some .reverse
 #guard (stationsIn .mountain)[18]? == some smokeStation
+#guard smokeExperiment.calibration ==
+  (⟨⟨2015, 9, 1⟩, 731⟩ : Period)
+#guard smokeExperiment.calibration.endDay == (⟨2017, 9, 1⟩ : Date).toDays
+#guard smokeExperiment.simulation ==
+  (⟨⟨2015, 9, 1⟩, 1096⟩ : Period)
+#guard smokeExperiment.simulation.endDay == (⟨2018, 9, 1⟩ : Date).toDays
 #guard smokeExperiment.wellFormed
 #guard smokeExperiment.runCount == 1
 #guard smokeExperiment.runsOn shyftPin
@@ -123,6 +136,10 @@ def Catalog.live (c : List Entry) : Bool :=
   { experimentId := rpmfsm2kSnow.id, model := .shyft .rpmfsm2k, goal := .kge,
     station := "109.29", pcorr := false, optimizer := .bobyqa, direction := .forward,
     seed := none, shyftCommit := "bfbdbe63c" }
+#guard !rpmfsm2kSnow.accepts
+  { experimentId := rpmfsm2kSnow.id, model := .shyft .rpmfsm2k, goal := .kge,
+    station := "109.29", pcorr := false, optimizer := .bobyqa, direction := .forward,
+    seed := none, shyftCommit := "" }
 
 /-- The active PTFSM2K experiment is launched on a build that provides its stack. -/
 theorem ptfsm2kSnow_launches_on_pin (fallback : Experiment) (choice : FallbackChoice) :

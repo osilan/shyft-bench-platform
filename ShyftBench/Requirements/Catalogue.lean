@@ -35,7 +35,7 @@ requirement typedCatalogue where
     given "a calibration period at the start of the simulation period, or inside it"
     when "the experiment is classified"
     then_ "it is forward when calibration starts the simulation, reverse when calibration starts later and ends at the end of the simulation (within one year), and has no direction otherwise; the validation period is the simulation minus the calibration, without segments shorter than one year"
-    check deferred "covered by guards on the legacy periods (D-010, D-019, D-024), not yet by a theorem"
+    check executable
 
   scenario "legacy catchment lists"
     given "a legacy entry imported from the archive"

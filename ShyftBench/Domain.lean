@@ -148,6 +148,14 @@ inductive MetricRange where
   | unitInterval
   deriving Repr, DecidableEq
 
+inductive MetricOptimum where
+  | higher
+  | lower
+  | targetOne
+  | targetZero
+  | none
+  deriving Repr, DecidableEq
+
 inductive Metric where
   | nse | kgeGupta | kgeKling | pbias | kgeInverseFlow
   | seasonalNse | seasonalR | seasonalAlpha | seasonalVarianceShare
@@ -200,10 +208,13 @@ def Metric.range : Metric → MetricRange
   | .seasonalVarianceShare | .interannualVarianceShare | .irregularVarianceShare => .unitInterval
   | .pbias => .real
 
-def Metric.higherIsBetter : Metric → Bool
+def Metric.optimum : Metric → MetricOptimum
   | .nse | .kgeGupta | .kgeKling | .kgeInverseFlow
-  | .seasonalNse | .interannualNse | .irregularNse => true
-  | _ => false
+  | .seasonalNse | .seasonalR | .interannualNse | .interannualR
+  | .irregularNse | .irregularR => .higher
+  | .pbias => .targetZero
+  | .seasonalAlpha | .interannualAlpha | .irregularAlpha => .targetOne
+  | .seasonalVarianceShare | .interannualVarianceShare | .irregularVarianceShare => .none
 
 /-- Hydrological regime classes from `calc_hydrological_regime.r`, by the months of
 the two lowest and three highest mean monthly discharges (1961-2019). -/
@@ -298,6 +309,16 @@ def Forcing.covers (f : Forcing) (p : Period) : Bool :=
 #guard Stack.colour? .rpmfsm2k == some "#980043"
 #guard Metric.all.eraseDups.length == Metric.all.length
 #guard Metric.all.all fun metric => metric.key != ""
+#guard (Metric.all.filter (·.family == .efficiency)).all (·.optimum == .higher)
+#guard Metric.pbias.optimum == .targetZero
+#guard Metric.seasonalNse.optimum == .higher &&
+  Metric.interannualNse.optimum == .higher && Metric.irregularNse.optimum == .higher
+#guard Metric.seasonalR.optimum == .higher &&
+  Metric.interannualR.optimum == .higher && Metric.irregularR.optimum == .higher
+#guard Metric.seasonalAlpha.optimum == .targetOne &&
+  Metric.interannualAlpha.optimum == .targetOne && Metric.irregularAlpha.optimum == .targetOne
+#guard Metric.seasonalVarianceShare.optimum == .none &&
+  Metric.interannualVarianceShare.optimum == .none && Metric.irregularVarianceShare.optimum == .none
 #guard Goal.all.length == 10
 #guard Goal.all.eraseDups.length == 10
 #guard Stack.all.eraseDups.length == 7
