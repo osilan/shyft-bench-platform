@@ -340,12 +340,20 @@ def middlePeriodExample : Experiment :=
     id := "middle-period-example"
     calibration := ⟨⟨1990, 1, 1⟩, 3652⟩ }
 
+def validationSegmentExample (days : Nat) : Experiment :=
+  { forwardPeriodExample with
+    calibration := ⟨⟨2000, 1, 1⟩, 0⟩
+    simulation := ⟨⟨2000, 1, 1⟩, days⟩ }
+
 #guard forwardPeriodExample.direction? == some .forward
 #guard shortForwardValidationExample.direction? == some .forward &&
   shortForwardValidationExample.validationPeriods? == some [] &&
   !shortForwardValidationExample.wellFormed
 #guard reversePeriodExample.direction? == some .reverse
 #guard middlePeriodExample.direction? == none
+#guard (validationSegmentExample 364).validationPeriods? == some []
+#guard ((validationSegmentExample 365).validationPeriods?).get!.map (·.days) == [365]
+#guard ((validationSegmentExample 366).validationPeriods?).get!.map (·.days) == [366]
 #guard forwardPeriodExample.validationPeriods? ==
   some [⟨benchCalibration.endDay, benchSimulation.endDay⟩]
 #guard reversePeriodExample.validationPeriods? ==
