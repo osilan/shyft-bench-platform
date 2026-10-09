@@ -48,7 +48,7 @@ jobs:
           BASE: ${{ github.base_ref }}
           PR_BASE: ${{ github.event.pull_request.base.ref }}
         run: |
-          base="${BASE:-$PR_BASE}"
+          base="${PR_BASE:-$BASE}"  # github.base_ref can say main for a stacked pull request
           echo "event=$EVENT base_ref=$BASE pull_request.base.ref=$PR_BASE"
           if [ "$EVENT" = "pull_request" ] && [ -n "$base" ] && [ "$base" != "main" ]; then
             echo "mode: append-only against $base"
