@@ -206,6 +206,7 @@ theorem	ShyftBench.snowCohort_counts	List.length ShyftBench.snowDominatedStation
 guard	012a24033ee2	#guard !Experiment.comparableWith .seed overlappingSeedLeft overlappingSeedRight
 guard	058a72d10d44	#guard Model.all.length == 8
 guard	06bc99278126	#guard !Experiment.comparableWith .pcorr overlappingPcorrLeft overlappingPcorrRight
+guard	093a7dd6fe8a	#guard shortForwardValidationExample.direction? == some .forward &&
 guard	0d2397cc9362	#guard Catalog.ok catalog
 guard	0eaad832e809	#guard Experiment.comparableWith .seed forwardPeriodExample seedExample
 guard	0f504ff34457	#guard smokeExperiment.calibration ==
@@ -220,8 +221,11 @@ guard	2e9619eb7a5f	#guard !Experiment.comparableWith .model overlappingModelLeft
 guard	2fc638d8cae1	#guard rpmfsm2kSnow.wellFormed
 guard	3252997c64b8	#guard snowDominatedStations.length == 70
 guard	333984f47612	#guard Goal.all.length == 10
+guard	3580311f3400	#guard pcorrSeedVariantsExample.variants.map (fun variant => (variant.pcorr, variant.seeds)) ==
 guard	376a32eb167a	#guard Metric.seasonalR.optimum == .higher &&
 guard	37cd56a541af	#guard specSnapshot.wellFormed
+guard	398df8b3d777	#guard match legacyRpmstkForwardComparable.variants, legacyRpmstkReverseComparable.variants with
+guard	3d15edf84135	#guard ((validationSegmentExample 365).validationPeriods?).get!.map (·.days) == [365]
 guard	4133c1618ce0	#guard (⟨2000, 3, 1⟩ : Date).toDays == 11017
 guard	427a1ed029ef	#guard smokeExperiment.wellFormed
 guard	429efae5e699	#guard Regime.all.map (·.code) == [1, 2, 3, 4, 0]
@@ -252,7 +256,9 @@ guard	65a80b7d522e	#guard smokeExperiment.simulation.endDay == (⟨2018, 9, 1⟩
 guard	675b31ba4755	#guard (stationsIn .inland).length == 27
 guard	67764d26a249	#guard ptfsm2kSnow.runsOn shyftLocalMaster
 guard	68305b9801c5	#guard allRequirements.all fun r =>
+guard	6c7c16cd5ddb	#guard legacyPtgskComparable.variants.map (·.pcorr) == [[false], [true]]
 guard	6d1c12d8e0f0	#guard Model.colour? .lstm == some "#e31a1c"
+guard	7214e072c1ae	#guard ((validationSegmentExample 366).validationPeriods?).get!.map (·.days) == [366]
 guard	79815f24096f	#guard !gridMatches (figureGrid.map FigureSpec.id) ((figureGrid.map FigureSpec.id).drop 1)
 guard	7bd1a497532f	#guard shyftBenchVerified.citationsOk
 guard	7cea7cce3947	#guard Generated.regimeCsvSha256 == "5a418b8b7185adc5c066484c36a9b951a8bd9d55fb4c90ba92862a9ca1975a24"
@@ -263,6 +269,7 @@ guard	8b9074e49710	#guard Experiment.comparableWith .model forwardPeriodExample 
 guard	8c4bd03495c7	#guard Experiment.comparableWith .direction forwardPeriodExample reversePeriodExample
 guard	8dbc9d7d0ac5	#guard Stack.colour? .rpmfsm2k == some "#980043"
 guard	8ef037715415	#guard smokeExperiment.calibration.endDay == (⟨2017, 9, 1⟩ : Date).toDays
+guard	90fb01610e39	#guard (validationSegmentExample 364).validationPeriods? == some []
 guard	9231149be8db	#guard forwardPeriodExample.validationPeriods? ==
 guard	9310b52e1335	#guard smokeExperiment.runsOn shyftPin
 guard	932fef5fd398	#guard (⟨1970, 1, 1⟩ : Date).toDays == 0
@@ -277,6 +284,7 @@ guard	aca1ba9ddddc	#guard smokeExperiment.runCount == 1
 guard	ae842d200c71	#guard reversePeriodExample.direction? == some .reverse
 guard	b50ae6775ec0	#guard Generated.regimeScriptSha256 == "33f0ddc0a9e38d1663bec5c84a724cb9cd60ff571e43d3b00d27bb0f0eb2799b"
 guard	b5d08deca4fb	#guard shyftBenchVerified.disjoint
+guard	b887018e4ef8	#guard match legacyPtgskComparable.variants with
 guard	b8aac2bf6e03	#guard Model.all.all fun model => model.colour?.isSome
 guard	bc98637675da	#guard benchCalibration.endDay == (⟨2001, 1, 1⟩ : Date).toDays
 guard	c26d6c0d33ce	#guard !Experiment.comparableWith .model forwardPeriodExample otherForcingExample
