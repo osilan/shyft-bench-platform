@@ -25,7 +25,7 @@ def catalogueDesign : DesignUnit := {
     ⟨"forwardPeriodExample.direction? == some .forward", by native_decide⟩,
     ⟨"reversePeriodExample.direction? == some .reverse", by native_decide⟩,
     ⟨"middlePeriodExample.direction? == none", by native_decide⟩,
-    ⟨"forward and reverse validation period guards", by native_decide⟩], by native_decide⟩
+    ⟨"direction and validation boundary guards", by native_decide⟩], by native_decide⟩
   theorems := #[⟨"ShyftBench.catalog_ok_live", by native_decide⟩]
 }
 
