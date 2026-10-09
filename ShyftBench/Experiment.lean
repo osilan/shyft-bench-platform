@@ -356,7 +356,7 @@ def pcorrExample : Experiment := { forwardPeriodExample with pcorr := [false] }
 def seedExample : Experiment := { forwardPeriodExample with seeds := [.v01] }
 def modelExample : Experiment := { forwardPeriodExample with models := [.shyft .rpmstk] }
 def goalExample : Experiment := { forwardPeriodExample with goals := [.nse] }
-def otherForcingExample : Experiment := { forwardPeriodExample with forcing := .aifs }
+def otherForcingExample : Experiment := { modelExample with forcing := .aifs }
 def overlappingModelLeft : Experiment :=
   { forwardPeriodExample with models := [.shyft .ptgsk, .shyft .rpmstk] }
 def overlappingModelRight : Experiment :=
