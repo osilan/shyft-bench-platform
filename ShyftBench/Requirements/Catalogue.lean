@@ -34,8 +34,8 @@ requirement typedCatalogue where
   scenario "direction is derived from the periods"
     given "a calibration period at the start of the simulation period, or inside it"
     when "the experiment is classified"
-    then_ "it is forward when calibration starts the simulation and reverse when calibration starts later, and the validation period is the simulation minus the calibration"
-    check deferred "covered by guards on the legacy periods (D-010, D-019), not yet by a theorem"
+    then_ "it is forward when calibration starts the simulation, reverse when calibration starts later and ends at the end of the simulation (within one year), and has no direction otherwise; the validation period is the simulation minus the calibration, without segments shorter than one year"
+    check deferred "covered by guards on the legacy periods (D-010, D-019, D-024), not yet by a theorem"
 
   scenario "legacy catchment lists"
     given "a legacy entry imported from the archive"
@@ -48,6 +48,12 @@ requirement typedCatalogue where
     when "they are catalogued"
     then_ "each seed and optimiser is a separate variant of its experiment"
     check deferred "the seed and SCE-UA runs are not catalogued yet"
+
+  scenario "LSTM entries"
+    given "the LSTM forward and reverse runs in lstm_baseline/runs"
+    when "they are catalogued"
+    then_ "each is an experiment with the LSTM model, its own periods and direction, and its catchments"
+    check deferred "the LSTM runs are not catalogued yet"
 
 requirement pinnedShyft where
   id "bench.shyft.pinned"

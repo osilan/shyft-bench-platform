@@ -264,3 +264,26 @@ that attempt.
 D-012 to D-016 keep their numbers (D-016 is rewritten). D-017 is replaced by the
 founder's export decision once it is made. Today's decisions (one-axis comparison,
 validation period, paper figures, fallback kept, smoke catchment) get the next free ids.
+
+## Review round of pull request #1, 2026-10-09
+
+Findings from the Copilot review (each linked to its comment thread) and the founder's review, sorted as in "Fixes and the spec"
+(`AGENTS.md`). The spec changes (D-024 to D-026, and the text for P2, P7 and P8) are on
+`spec/review-decisions` and merge into the integration branch first. Each fix is then a small
+sub-branch with a pull request into `copilot/vscode-muzkagwh-mplk`. Fix tasks never change
+requirement text or decisions.
+
+| Task | Found by | Kind | Requirement, scenario | Done when |
+|---|---|---|---|---|
+| P1 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562357) | bug | `bench.experiment.catalogue`, "direction is derived from the periods" | `legacy-rpmstk-reverse` uses `legacyReverseCalibration`; a `#guard` shows its `direction?` is `.reverse` |
+| P2 | founder review | spec (D-024) + bug | same scenario | `validationPeriods?` drops segments under one year; a mid-period calibration has `direction? = none`; guards for forward, reverse, middle; the scenario becomes executable with a theorem or guards cited in its design unit |
+| P3 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562265) | spec (D-025) + bug | `bench.ci.smoke` | `smokeExperiment` uses the D-025 periods; a `#guard` checks them and `wellFormed` |
+| P4 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562317) | bug | `bench.metrics.canonical` (design unit) | `Metric.higherIsBetter` is replaced by a best value (higher, lower, target 1, target 0, none); r is higher, alpha target 1, PBIAS target 0, variance shares none; one `#guard` per family |
+| P5 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562384) | bug | `bench.results.filing` | `Experiment.accepts` rejects an empty `shyftCommit`; `#guard` |
+| P6 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562433) | bug | `bench.compare.matched`, "arms differ only in the chosen axis" | list-valued axes compare one value per arm, order-insensitive and non-overlapping; guards reject `[A, B]` vs `[A, C]` and reordered lists |
+| P7 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562489) | spec (D-026) | `bench.dashboard` | text says seed is not a selector (done on the spec branch); `FigureSpec` keeps no seed field |
+| P8 | founder review | spec | `bench.experiment.catalogue`, "LSTM entries" | deferred scenario exists (done on the spec branch) |
+| P9 | founder review | bug | `bench.ci.smoke` (design unit) | `tests/test_smoke_draw.py` redraws with `random.Random(20261008).choice` over the mountain stations in CSV order and matches `smokeStation` |
+| P10 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562612) | process | all new guards and theorems | each one broken, seen to fail for the right reason, reverted; listed in `audit/report.md` |
+| P11 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562534), [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562656) | process | `audit/report.md` | rewritten from an actual gate run: correct counts, the fallback as in D-021, no claim of fingerprint acceptance |
+| P12 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562572) | process | `audit/fingerprint.tsv` | the founder reviews the statement diff against `main` and runs `gate.py update` last |
