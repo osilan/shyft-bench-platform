@@ -73,7 +73,8 @@ def matchedComparisonDesign : DesignUnit := {
 def smokeDesign : DesignUnit := {
   id := smokeTier.id
   interfaces := ⟨#[⟨"smokeExperiment", by native_decide⟩, ⟨"smokeStation", by native_decide⟩], by native_decide⟩
-  tests := ⟨#[⟨"smokeExperiment.wellFormed", by native_decide⟩], by native_decide⟩
+  tests := ⟨#[⟨"smokeExperiment.wellFormed", by native_decide⟩,
+    ⟨"tests/test_smoke_draw.py", by native_decide⟩], by native_decide⟩
   theorems := #[⟨"ShyftBench.smoke_ok", by native_decide⟩]
 }
 
