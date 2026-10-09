@@ -136,6 +136,10 @@ def Catalog.live (c : List Entry) : Bool :=
   { experimentId := rpmfsm2kSnow.id, model := .shyft .rpmfsm2k, goal := .kge,
     station := "109.29", pcorr := false, optimizer := .bobyqa, direction := .forward,
     seed := none, shyftCommit := "bfbdbe63c" }
+#guard !rpmfsm2kSnow.accepts
+  { experimentId := rpmfsm2kSnow.id, model := .shyft .rpmfsm2k, goal := .kge,
+    station := "109.29", pcorr := false, optimizer := .bobyqa, direction := .forward,
+    seed := none, shyftCommit := "" }
 
 /-- The active PTFSM2K experiment is launched on a build that provides its stack. -/
 theorem ptfsm2kSnow_launches_on_pin (fallback : Experiment) (choice : FallbackChoice) :

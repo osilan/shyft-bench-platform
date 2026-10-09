@@ -200,6 +200,7 @@ def Experiment.accepts (e : Experiment) (r : ResultKey) : Bool :=
   r.experimentId == e.id && e.models.contains r.model && e.goals.contains r.goal &&
     e.catchments.contains r.station && e.pcorr.contains r.pcorr && e.optimizer == r.optimizer &&
     e.direction? == some r.direction &&
+    r.shyftCommit != "" &&
     (match r.seed with
      | none => e.seeds.isEmpty
      | some seed => e.seeds.contains seed)
@@ -207,7 +208,7 @@ def Experiment.accepts (e : Experiment) (r : ResultKey) : Bool :=
 theorem Experiment.accepts_model (e : Experiment) (r : ResultKey) (h : e.accepts r = true) :
     r.model ∈ e.models := by
   simp only [Experiment.accepts, Bool.and_eq_true, List.contains_iff_mem] at h
-  exact h.1.1.1.1.1.1.2
+  exact h.1.1.1.1.1.1.1.2
 
 /-! ## Matched comparisons -/
 

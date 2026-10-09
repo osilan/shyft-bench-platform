@@ -53,7 +53,8 @@ def launchFallbackDesign : DesignUnit := {
 def resultFilingDesign : DesignUnit := {
   id := resultFiling.id
   interfaces := ⟨#[⟨"ResultKey", by native_decide⟩, ⟨"Experiment.accepts", by native_decide⟩], by native_decide⟩
-  tests := ⟨#[⟨"rpmfsm2kSnow rejects a PTFSM2K result", by native_decide⟩], by native_decide⟩
+  tests := ⟨#[⟨"rpmfsm2kSnow rejects a PTFSM2K result", by native_decide⟩,
+    ⟨"rpmfsm2kSnow rejects an empty Shyft commit", by native_decide⟩], by native_decide⟩
   theorems := #[⟨"ShyftBench.rpmfsm2kSnow_rejects_other_models", by native_decide⟩]
 }
 
