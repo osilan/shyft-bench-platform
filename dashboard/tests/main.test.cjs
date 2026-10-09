@@ -21,8 +21,14 @@ class Element {
     this.children.push(child);
   }
 
-  addEventListener(event, listener) {
-    this.listeners[event] = listener;
+  addEventListener(event, listener, options) {
+    (this.listeners[event] ??= []).push({ listener, once: options?.once ?? false });
+  }
+
+  dispatch(event) {
+    const listeners = this.listeners[event] ?? [];
+    this.listeners[event] = listeners.filter(({ once }) => !once);
+    listeners.forEach(({ listener }) => listener({ type: event, target: this }));
   }
 
   removeAttribute(name) {
@@ -82,12 +88,17 @@ test("plot and table stay hidden until the selected figure CSV is loaded", async
   csvResponses[0]({ ok: true, text: async () => "metric,value\nfirst,0.42\n" });
   await new Promise(setImmediate);
   assert.equal(elements.plot.src, "https://example.test/figures/first.svg");
+  assert.equal(elements.data.children.length, 0);
+  assert.equal(elements.plot.hidden, true);
+  assert.equal(elements.data.hidden, true);
+
+  elements.plot.dispatch("load");
   assert.equal(elements.data.children[1].children[0].textContent, "first");
   assert.equal(elements.plot.hidden, false);
   assert.equal(elements.data.hidden, false);
 
   elements.figure.value = "second";
-  elements.figure.listeners.change();
+  elements.figure.dispatch("change");
   assert.equal(elements.plot.hidden, true);
   assert.equal(elements.data.hidden, true);
   assert.equal(csvResponses.length, 2);
@@ -95,6 +106,11 @@ test("plot and table stay hidden until the selected figure CSV is loaded", async
   csvResponses[1]({ ok: true, text: async () => "metric,value\nsecond,0.57\n" });
   await new Promise(setImmediate);
   assert.equal(elements.plot.src, "https://example.test/figures/second.svg");
+  assert.equal(elements.data.children[1].children[0].textContent, "first");
+  assert.equal(elements.plot.hidden, true);
+  assert.equal(elements.data.hidden, true);
+
+  elements.plot.dispatch("load");
   assert.equal(elements.data.children[1].children[0].textContent, "second");
   assert.equal(elements.plot.hidden, false);
   assert.equal(elements.data.hidden, false);

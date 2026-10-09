@@ -95,10 +95,19 @@ function render(figures: Figure[]): void {
     })
     .then((csv) => {
       if (currentRender !== renderVersion) return;
-      renderTable(csv);
-      elements.plot.src = new URL(chosen.svg, indexUrl).toString();
-      elements.plot.hidden = false;
-      elements.table.hidden = false;
+      const imageUrl = new URL(chosen.svg, indexUrl).toString();
+      elements.plot.addEventListener("load", () => {
+        if (currentRender !== renderVersion) return;
+        renderTable(csv);
+        elements.plot.hidden = false;
+        elements.table.hidden = false;
+      }, { once: true });
+      elements.plot.addEventListener("error", () => {
+        if (currentRender !== renderVersion) return;
+        elements.table.replaceChildren();
+        elements.error.textContent = `Could not load ${chosen.svg}`;
+      }, { once: true });
+      elements.plot.src = imageUrl;
     })
     .catch((error: Error) => {
       if (currentRender !== renderVersion) return;
