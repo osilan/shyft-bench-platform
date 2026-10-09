@@ -16,6 +16,21 @@ VS Code. Canonical copies: `copilot-agents/variants/shyft-bench-platform/`.
 | DevOps | GitHub Actions, the Shyft container, the smoke tier, releases | Architect |
 | Independent Auditor | Proof meaning, security, quality; owns the gate (only tightens) | Founder |
 
+## Fixes and the spec
+
+A fix becomes part of the spec only when it changes what the system *should* do.
+
+| Kind | Spec changes? | Recorded as | Who |
+|---|---|---|---|
+| Decision or meaning change (spec wrong, unclear or silent) | yes | a `D-NNN` decision plus the amended requirement or scenario; the founder approves the statements | Architect, before any fix task |
+| Bug (the model or code does not meet approved text) | no | a regression `#guard`, theorem or test under the existing requirement's design unit; a deferred scenario may become executable | any builder, also the cloud agent |
+| Process (reports, mutation checks, approvals) | no | `audit/report.md` | Independent Auditor or founder |
+
+Branches: a review round has one integration branch (its pull request). Spec changes go in
+first, on their own sub-branch, merged once the founder has approved the statements. Each fix
+is a small sub-branch with a pull request into the integration branch. A fix task never
+changes requirement text or decisions: if it cannot be done without that, stop and report.
+
 ## Rules for every agent
 
 - The Lean specification is the source of truth. Experiments, stacks, goal functions,

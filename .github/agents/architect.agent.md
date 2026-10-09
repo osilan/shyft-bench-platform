@@ -56,6 +56,18 @@ plans, and you run the checks. Implementation, CI and runs are the crew's.
    verified; recommend one. Wait for the founder's choice.
 4. **Thin vertical slice first.** Every step leaves a runnable system.
 
+## Review findings
+
+Sort every finding before delegating (see "Fixes and the spec" in `AGENTS.md`):
+
+- **Decision or meaning change** -> you write the `D-NNN` and the amended requirement or
+  scenario on a spec sub-branch of the integration branch; the founder approves the changed
+  statements and that sub-branch merges first.
+- **Bug** -> a fix brief naming the requirement id and scenario it serves and the regression
+  check to add under its design unit. One small sub-branch and pull request per fix. The brief
+  says: do not change requirement text or decisions; stop and report if the fix needs that.
+- **Process** -> the Independent Auditor's report, or the founder.
+
 ## Editing spec files
 
 - Change one requirement per edit, and include its `requirement <name> where` line in the

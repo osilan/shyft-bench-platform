@@ -107,7 +107,19 @@ def decisions : List Decision := [
   { id := "D-023", date := "2026-10-08"
     decided := "The founder approves the 35-figure seNorge2018 aggregate grid. AIFS is future work and has no figures. The 10 catchment-detail figures are the 5 best and 5 worst catchments by KGE (Gupta et al., 2009) for rpmstk with pcorr on, listed in Lean once the metrics are computed."
     why := "Best and worst cases show the range of model behaviour without a hand-picked list."
-    refines := ["bench.export", "bench.dashboard"] }
+    refines := ["bench.export", "bench.dashboard"] },
+  { id := "D-024", date := "2026-10-09"
+    decided := "Validation segments shorter than one year are dropped. The legacy reverse run's validation is therefore 1979-09-01 to 1999-09-01; the one-day segment at 2020-12-31 left by its 7792-day calibration is not validation. A calibration is reverse only when it starts after the simulation and ends at the simulation's end within one year; a calibration in the middle of the simulation has no direction."
+    why := "The one-day tail is an artefact of the legacy configuration's day count, not an evaluation period; a mid-period calibration is neither forward nor reverse."
+    refines := ["bench.experiment.catalogue", "bench.dashboard"] },
+  { id := "D-025", date := "2026-10-09"
+    decided := "The CI smoke run uses seNorge2018 with calibration 2015-09-01 to 2017-09-01 and simulation 2015-09-01 to 2018-09-01, on the D-022 station, PTFSM2K, KGE and pcorr on."
+    why := "Three years inside seNorge2018 coverage keep the smoke run short while still having an unseen validation year."
+    refines := ["bench.ci.smoke"] },
+  { id := "D-026", date := "2026-10-09"
+    decided := "Seed is not a selector on the site: seed spread is shown inside the figures. The figure grid has no seed axis."
+    why := "Seeds exist for the equifinality discussion, which needs the spread in one view; a selector would multiply the figures and invite picking one seed."
+    refines := ["bench.dashboard", "bench.export"] }
 ]
 
 end ShyftBench
