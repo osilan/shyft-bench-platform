@@ -91,11 +91,13 @@ def check_dist(dist: Path, scope: str) -> list[str]:
     """The published directory equals the declared grid (`first-slice` or `grid`), and every
     listed file exists and matches its manifest checksum."""
     index_path, manifest_path = dist / "figure-index.json", dist / "manifest.json"
+    problems = [f"{name} is missing" for name in ("canon.json", "catalogue.json")
+                if not (dist / name).is_file()]
     if not index_path.is_file() or not manifest_path.is_file():
-        return ["figure-index.json or manifest.json is missing"]
+        return problems + ["figure-index.json or manifest.json is missing"]
     entries = json.loads(index_path.read_text())["figures"]
     declared = {f["id"]: f for f in canon.declared_figures(scope)}
-    problems = check_grid([e["id"] for e in entries], list(declared))
+    problems += check_grid([e["id"] for e in entries], list(declared))
     for e in entries:
         spec = declared.get(e["id"])
         if spec is not None and e != index_entry(spec):

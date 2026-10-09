@@ -56,6 +56,8 @@ def build(dist: Path) -> int:
                               "sources": sources})
         index.append(export.index_entry(spec))
     (dist / "figure-index.json").write_bytes(export.dumps({"figures": index}))
+    (dist / "canon.json").write_bytes(canon.CANON_PATH.read_bytes())
+    (dist / "catalogue.json").write_bytes(export.dumps(canon.load()["catalogue"]))
     (dist / "manifest.json").write_bytes(export.dumps(export.manifest(artifacts)))
     problems = export.check_dist(dist, "first-slice")
     for p in problems:

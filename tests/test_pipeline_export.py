@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -49,6 +50,28 @@ class CanonTest(unittest.TestCase):
         dates = pd.Series(pd.to_datetime(["2000-12-31", "2001-01-01", "2020-12-31", "2021-01-01"]))
         self.assertEqual(table.validation_mask(dates, entry["validation"]).tolist(),
                          [False, True, True, False])
+
+
+class BuildTest(unittest.TestCase):
+    def test_bench_export_build_publishes_canon_and_catalogue(self):
+        spec = {"id": "scoreboard-test", "view": "scoreboard", "forcing": "seNorge",
+                "direction": "forward", "pcorr": True, "optimizer": "bobyqa"}
+        with tempfile.TemporaryDirectory() as tmp:
+            dist = Path(tmp) / "dist"
+            with (patch.object(cli.canon, "declared_figures", return_value=[spec]),
+                  patch.object(cli, "experiment_for", return_value={"id": "experiment"}),
+                  patch.object(cli.table, "build", return_value=(pd.DataFrame(), {})),
+                  patch.object(cli, "parquet_bytes", return_value=b"parquet"),
+                  patch.object(cli.figures, "scoreboard_table", return_value=pd.DataFrame()),
+                  patch.object(cli.figures, "render_scoreboard", return_value=b"<svg/>"),
+                  patch.object(cli.figures, "table_csv", return_value=b"csv"),
+                  patch.object(cli.export, "manifest", return_value={}),
+                  patch.object(cli.export, "check_dist", return_value=[]),
+                  patch.object(cli, "INTERNAL", Path(tmp) / "internal")):
+                self.assertEqual(cli.build(dist), 0)
+            self.assertEqual((dist / "canon.json").read_bytes(), canon.CANON_PATH.read_bytes())
+            self.assertEqual(json.loads((dist / "catalogue.json").read_text()),
+                             canon.load()["catalogue"])
 
 
 class ScoreboardTest(unittest.TestCase):
@@ -105,6 +128,8 @@ class GridCheckTest(unittest.TestCase):
                                   "sha256": export.sha256(rel.encode())})
         (tmp / "figure-index.json").write_bytes(export.dumps({"figures": entries}))
         (tmp / "manifest.json").write_bytes(export.dumps({"artifacts": artifacts}))
+        (tmp / "canon.json").write_bytes(b"{}")
+        (tmp / "catalogue.json").write_bytes(b"[]")
 
     def first_slice_ids(self):
         return [f["id"] for f in canon.declared_figures("first-slice")]
@@ -113,6 +138,16 @@ class GridCheckTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             self.fake_dist(Path(tmp), self.first_slice_ids())
             self.assertEqual(export.check_dist(Path(tmp), "first-slice"), [])
+
+    def test_bench_export_requires_canon_and_catalogue(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dist = Path(tmp)
+            self.fake_dist(dist, self.first_slice_ids())
+            for name in ("canon.json", "catalogue.json"):
+                (dist / name).unlink()
+                problems = export.check_dist(dist, "first-slice")
+                self.assertTrue(any(f"{name} is missing" in p for p in problems), problems)
+                (dist / name).write_bytes(b"{}")
 
     def test_bench_export_a_missing_declared_figure_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
