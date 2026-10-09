@@ -94,6 +94,15 @@ def Experiment.runCount (e : Experiment) : Nat :=
   e.models.length * e.goals.length * e.catchments.length * e.pcorr.length *
     (if e.seeds.isEmpty then 1 else e.seeds.length)
 
+/-- Expand pcorr and seed combinations into single-axis variants. An empty seed list represents
+one unseeded variant. -/
+def Experiment.variants (e : Experiment) : List Experiment :=
+  e.pcorr.flatMap fun pcorr =>
+    if e.seeds.isEmpty then
+      [{ e with pcorr := [pcorr] }]
+    else
+      e.seeds.map fun seed => { e with pcorr := [pcorr], seeds := [seed] }
+
 /-- Every Shyft model is in the build; the external LSTM model is not gated on Shyft. -/
 def Experiment.runsOn (e : Experiment) (b : ShyftBuild) : Bool :=
   e.models.all fun
@@ -371,6 +380,8 @@ def overlappingPcorrLeft : Experiment := { forwardPeriodExample with pcorr := [t
 def overlappingPcorrRight : Experiment := { forwardPeriodExample with pcorr := [true, true] }
 def overlappingSeedLeft : Experiment := { forwardPeriodExample with seeds := [.v00, .v01] }
 def overlappingSeedRight : Experiment := { forwardPeriodExample with seeds := [.v00, .v02] }
+def pcorrSeedVariantsExample : Experiment :=
+  { forwardPeriodExample with pcorr := [false, true], seeds := [.v00, .v01] }
 
 #guard Experiment.comparableWith .direction forwardPeriodExample reversePeriodExample
 #guard Experiment.comparableWith .optimizer forwardPeriodExample optimizerExample
@@ -378,6 +389,8 @@ def overlappingSeedRight : Experiment := { forwardPeriodExample with seeds := [.
 #guard Experiment.comparableWith .seed forwardPeriodExample seedExample
 #guard Experiment.comparableWith .model forwardPeriodExample modelExample
 #guard Experiment.comparableWith .goal forwardPeriodExample goalExample
+#guard pcorrSeedVariantsExample.variants.map (fun variant => (variant.pcorr, variant.seeds)) ==
+  [([false], [.v00]), ([false], [.v01]), ([true], [.v00]), ([true], [.v01])]
 #guard !Experiment.comparableWith .model overlappingModelLeft overlappingModelRight
 #guard !Experiment.comparableWith .model overlappingModelLeft reorderedModel
 #guard Experiment.comparableWith .goal overlappingModelLeft reorderedModelGoal
