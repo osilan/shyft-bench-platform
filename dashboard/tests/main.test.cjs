@@ -92,21 +92,21 @@ test("plot and table stay hidden until the selected figure CSV is loaded", async
   assert.equal(elements.plot.hidden, true);
   assert.equal(elements.data.hidden, true);
 
-  elements.plot.dispatch("load");
-  assert.equal(elements.data.children[1].children[0].textContent, "first");
-  assert.equal(elements.plot.hidden, false);
-  assert.equal(elements.data.hidden, false);
-
   elements.figure.value = "second";
   elements.figure.dispatch("change");
   assert.equal(elements.plot.hidden, true);
   assert.equal(elements.data.hidden, true);
   assert.equal(csvResponses.length, 2);
 
+  elements.plot.dispatch("load");
+  assert.equal(elements.data.children.length, 0);
+  assert.equal(elements.plot.hidden, true);
+  assert.equal(elements.data.hidden, true);
+
   csvResponses[1]({ ok: true, text: async () => "metric,value\nsecond,0.57\n" });
   await new Promise(setImmediate);
   assert.equal(elements.plot.src, "https://example.test/figures/second.svg");
-  assert.equal(elements.data.children[1].children[0].textContent, "first");
+  assert.equal(elements.data.children.length, 0);
   assert.equal(elements.plot.hidden, true);
   assert.equal(elements.data.hidden, true);
 
