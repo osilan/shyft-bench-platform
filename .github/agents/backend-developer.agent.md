@@ -57,6 +57,10 @@ statement looks wrong, stop and ask the Architect.
 - Every new guard or theorem is mutation-checked: break the input, watch it fail for the
   right reason, revert.
 - Generated Lean (`ShyftBench/Generated/`) comes from scripts; regenerate, never hand-edit.
+- Requirements live one area per file in `ShyftBench/Requirements/`. Edit one requirement or
+  declaration at a time with its declaration line in the context. Never delete and re-create
+  a Lean file or rewrite it from memory; if an edit lands in the wrong place, restore the
+  file with `git checkout -- <file>` and redo it in small steps.
 
 ## Python (the pipeline)
 

@@ -2,6 +2,7 @@ import ShyftBench.Domain
 import ShyftBench.Catchments
 import ShyftBench.Experiment
 import ShyftBench.Catalog
+import ShyftBench.Figures
 import ShyftBench.Requirements
 import ShyftBench.Decisions
 import ShyftBench.Design

@@ -200,6 +200,18 @@ following. The founder approves the resulting statement changes; **do not run
 `python3 scripts/gate.py update` and then report the fingerprint as accepted**. List the
 changed statements for the founder instead.
 
+The gate's fingerprint check therefore **fails, as expected**, once a statement changes. All
+other checks must pass. When only the fingerprint fails and every changed statement is one
+this brief asks for, stop and report the list. Do not keep editing to make the gate pass.
+The Stop hook asks up to three times; answer each time with the same list.
+
+Requirements are now one file per area under `ShyftBench/Requirements/` (the index is in
+`ShyftBench/Requirements.lean`). Edit one requirement at a time, and never re-create a file
+(see "Editing spec files" in the Architect's instructions). The first attempt at this brief
+mixed requirements together by patching one large file, then rewrote it from memory and
+changed 14 statements without asking. Start from the committed requirement files, not from
+that attempt.
+
 ### Founder decisions on that run
 
 1. **Keep the fallback (D-002 stands).** If the pod lacks the planned experiment's stack,
@@ -252,3 +264,100 @@ changed statements for the founder instead.
 D-012 to D-016 keep their numbers (D-016 is rewritten). D-017 is replaced by the
 founder's export decision once it is made. Today's decisions (one-axis comparison,
 validation period, paper figures, fallback kept, smoke catchment) get the next free ids.
+
+## Review round of pull request #1, 2026-10-09
+
+Findings from the Copilot review (each linked to its comment thread) and the founder's review, sorted as in "Fixes and the spec"
+(`AGENTS.md`). The spec changes (D-024 to D-026, and the text for P2, P7 and P8) are on
+`spec/review-decisions` and merge into the integration branch first. Each fix is then a small
+sub-branch with a pull request into `copilot/vscode-muzkagwh-mplk`. Fix tasks never change
+requirement text or decisions.
+
+| Task | Found by | Kind | Requirement, scenario | Done when |
+|---|---|---|---|---|
+| P1 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562357) | bug | `bench.experiment.catalogue`, "direction is derived from the periods" | `legacy-rpmstk-reverse` uses `legacyReverseCalibration`; a `#guard` shows its `direction?` is `.reverse` |
+| P2 | founder review | spec (D-024) + bug | same scenario | `validationPeriods?` drops segments under one year; a mid-period calibration has `direction? = none`; guards for forward, reverse, middle; the scenario becomes executable with a theorem or guards cited in its design unit |
+| P3 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562265) | spec (D-025) + bug | `bench.ci.smoke` | `smokeExperiment` uses the D-025 periods; a `#guard` checks them and `wellFormed` |
+| P4 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562317) | bug | `bench.metrics.canonical` (design unit) | `Metric.higherIsBetter` is replaced by a best value (higher, lower, target 1, target 0, none); r is higher, alpha target 1, PBIAS target 0, variance shares none; one `#guard` per family |
+| P5 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562384) | bug | `bench.results.filing` | `Experiment.accepts` rejects an empty `shyftCommit`; `#guard` |
+| P6 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562433) | bug | `bench.compare.matched`, "arms differ only in the chosen axis" | list-valued axes compare one value per arm, order-insensitive and non-overlapping; guards reject `[A, B]` vs `[A, C]` and reordered lists |
+| P7 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562489) | spec (D-026) | `bench.dashboard` | text says seed is not a selector (done on the spec branch); `FigureSpec` keeps no seed field |
+| P8 | founder review | spec | `bench.experiment.catalogue`, "LSTM entries" | deferred scenario exists (done on the spec branch) |
+| P9 | founder review | bug | `bench.ci.smoke` (design unit) | `tests/test_smoke_draw.py` redraws with `random.Random(20261008).choice` over the mountain stations in CSV order and matches `smokeStation` |
+| P10 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562612) | process | all new guards and theorems | each one broken, seen to fail for the right reason, reverted; listed in `audit/report.md` |
+| P11 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562534), [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562656) | process | `audit/report.md` | rewritten from an actual gate run: correct counts, the fallback as in D-021, no claim of fingerprint acceptance |
+| P12 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562572) | process | `audit/fingerprint.tsv` | the founder reviews the statement diff against `main` and runs `gate.py update` last |
+
+## Review round of pull request #1, part 2 (2026-10-09)
+
+P1–P6 and P9 merged (pull request #2). These tasks come from reviewing it. All are bugs or
+process (see "Fixes and the spec" in `AGENTS.md`): no requirement text or decision changes. Each is
+one small sub-branch with a pull request into `copilot/vscode-muzkagwh-mplk`, one task per cloud
+session. Every new `#guard` or theorem a task adds is mutation-checked once by that task (break it,
+see it fail for the right reason, revert) and listed in its pull request.
+
+Order: R1–R4 first (they change `Experiment.lean`), then P10a–d, then P11.
+
+| Task | Kind | Requirement, scenario | Done when |
+|---|---|---|---|
+| R1 | bug | `bench.experiment.catalogue`, "direction is derived from the periods" | guards with validation segments of 364, 365 and 366 days show 364 dropped and 365, 366 kept; changing `minimumValidationDays` to 366 or 800 fails the build |
+| R2 | bug | `bench.experiment.catalogue`, "catalogue is consistent and live" | `Experiment.wellFormed` requires at least one validation segment; a guard shows a forward experiment with 100 days of validation is not well formed |
+| R3 | bug | `bench.compare.matched`, "different forcings cannot be compared" | the different-forcing guard uses a fixture that differs from its partner on the chosen axis and in forcing only, so the guard fails if forcing is made equal |
+| R4 | bug (design) | `bench.compare.matched`, "arms differ only in the chosen axis" | `Experiment.variants` splits an experiment into one pcorr value and one seed (or none) each; guards show the two pcorr variants of `legacyBench .ptgsk` are comparable along `.pcorr`, and the forward variant of `legacyBench .rpmstk` is comparable with the matching `legacyRpmstkReverse` variant along `.direction` |
+| P10a | process | `Domain.lean` | done in pull request #8 |
+| P10b | process | `Experiment.lean` | the 10 subject mutations below, results recorded |
+| P10c | process | `Catalog.lean` | the 7 subject mutations below, results recorded |
+| P10d | process | `Figures.lean` | the 6 subject mutations below, results recorded |
+| P11 | process | `audit/report.md` | rewritten from an actual gate run after P10a–d: counts, survivors, open items |
+
+**How to mutation-check (P10a–d), revised 2026-10-09.** A mutation breaks the **subject** of a
+check (the definition, data or fixture the check is about) and shows the check notices. It never
+edits the check itself: negating a `#guard`, changing its expected value, or swapping `==`, `≤`,
+`all` in it proves nothing, because such a check can only fail. (The first P10d run did exactly that
+and was discarded.)
+
+For each item: work in a scratch copy, never the repository source; make the **one** subject change
+named in the list; run `lake build`; record the item, the subject you changed, the change, and which
+check failed with its error; restore. If the build stays green, or a different check than the named
+one fails, record a finding with a proposed fix and do not fix it. Do only the listed items, in order,
+and stop after the last one (at most 20). Record the table in the pull request and in
+`audit/mutations/<task>.md`.
+
+Value-only checks (a colour is a given hex, there are 8 models, a period literal equals itself) are
+not mutation-checked: changing the value only re-proves the value. Checks over empty lists (today
+`detailFigures`) pass vacuously and are listed as findings until the list has entries.
+
+**P10a, `ShyftBench/Domain.lean`: done** (pull request #8; subjects were changed correctly).
+
+**P10b, `ShyftBench/Experiment.lean` (10), after R1–R4.** Subject change → check that must fail:
+1. `Experiment.direction?`: forward condition `calibration.endDay < simulation.endDay` becomes `≤` and the forward example's calibration is set to the whole simulation → the forward direction guard or `wellFormed` guard.
+2. `Experiment.direction?`: remove the "ends within one year of the simulation end" condition from the reverse branch → `middlePeriodExample.direction? == none`.
+3. `Experiment.validationPeriods?`: remove the `keepLongEnough` filter → the reverse validation guard (one segment, 1979-09-01 to 1999-09-01).
+4. `Experiment.validationPeriods?`: in the reverse branch, drop the segment before the calibration → the reverse validation guard.
+5. `Experiment.comparableWith`: remove the forcing-equality conjunct → the different-forcing guard (as rewritten by R3) and theorem `not_comparableWith_different_forcing`.
+6. `Experiment.comparableWith`: remove the `differsOnAxis` conjunct → theorem `comparableWith_differs_on_chosen_axis` and the overlapping-arm guards.
+7. `Experiment.sameOnUnchosenAxes`, `.model` case: remove the goals condition → a guard comparing along `.model` arms with different goals (add the fixture if none exists, and say so).
+8. `differsByOne`: return `true` for any two lists → the overlapping model, goal, pcorr and seed guards.
+9. `sameMembers`: replace with list equality (`==`) → `comparableWith .goal overlappingModelLeft reorderedModelGoal`.
+10. `decideLaunch`: in the `.runFallback` branch, launch the fallback without `fallback.runsOn pod` → theorem `decideLaunch_runsOn` or `decideLaunch_fallbackPolicy`.
+
+**P10c, `ShyftBench/Catalog.lean` (7), after R2.** Subject change → check that must fail:
+1. `legacyRpmstkReverse`: calibration back to `benchCalibration` → `legacyRpmstkReverse.direction? == some .reverse`.
+2. `smokeExperiment`: calibration 732 days instead of 731 → the calibration end-date guard (2017-09-01).
+3. `smokeExperiment`: simulation starting 2019-09-01 (outside seNorge2018 coverage) → `smokeExperiment.wellFormed`.
+4. `smokeStation`: change to an inland station (e.g. "157.3") → theorem `smoke_ok` and the redraw test `tests/test_smoke_draw.py`.
+5. `ptfsm2kSnow`: pcorr `[true]` only → `rpmfsm2kSnow.comparableWith .model ptfsm2kSnow`.
+6. `shyftLocalMaster`: remove `.ptfsm2k` from its stacks → the `decideLaunch shyftLocalMaster ptfsm2kSnow … == .launch ptfsm2kSnow` guard.
+7. `Experiment.accepts`: remove the `e.models.contains r.model` conjunct → theorem `rpmfsm2kSnow_rejects_other_models` and the guard that rejects a PTFSM2K result.
+
+**P10d, `ShyftBench/Figures.lean` (6).** Subject change → check that must fail:
+1. `aggregateFigures`: append one more scoreboard figure → `aggregateFigures.length == 35`.
+2. `aggregateFigures`: repeat an existing figure → the unique-ids guard.
+3. `aggregateFigures`: drop the `firstSlice ++` prefix → `firstSlice.all aggregateFigures.contains`.
+4. `aggregateFigures`: add a `catchmentDetail` figure with a station → the "aggregate has no detail figures" guard.
+5. `gridMatches`: drop the `published.all declared.contains` half → the undeclared-id guard.
+6. `gridMatches`: drop the `declared.all published.contains` half → the missing-id guard.
+
+Finding to record, not mutate: the two `detailFigures` guards pass vacuously while the list is empty.
+
+**Fingerprint.** CI checks pull requests into the review branch in append-only mode against that branch's fingerprint: added checks and theorems pass, any changed or removed statement fails and waits for the founder. The founder records all additions once, with `python3 scripts/gate.py update`, before the review branch goes to main, where CI is strict. Agents never run `gate.py update`.

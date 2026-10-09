@@ -29,3 +29,8 @@ Hooks run only in local VS Code, not in GitHub's cloud coding agent; CI is the
 gate of record. The cloud agent's environment is prepared by
 `.github/workflows/copilot-setup-steps.yml`, so it can run the gate itself, and the
 `main` ruleset (`.github/rulesets/main-gate.json`) requires the `gate` job to pass.
+
+In CI, pull requests into a review branch (any base except `main`) run
+`gate.py check --no-committed --mode append-only --against <base fingerprint>`: new checks and
+theorems pass, changed or removed statements fail. Pushes to `main` and pull requests into `main`
+run the strict `gate.py check`, so the committed fingerprint must be current there.

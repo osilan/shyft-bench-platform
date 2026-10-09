@@ -42,11 +42,48 @@ def Stack.key : Stack → String
 the FSM2 pair. The FSM2 placement is provisional: the canon predates FSM2. -/
 def Stack.all : List Stack := [.ptstk, .rpmstk, .ptgsk, .rpmgsk, .ptsthbv, .ptfsm2k, .rpmfsm2k]
 
-/-- Canonical colours (`compare-models`); FSM2 stacks have none yet. -/
+/-- Canonical colours (`compare-models`), including the founder-approved FSM2 colours. -/
 def Stack.colour? : Stack → Option String
   | .ptstk => some "#4393c3" | .rpmstk => some "#2166ac" | .ptgsk => some "#f4a582"
   | .rpmgsk => some "#d6604d" | .ptsthbv => some "#762a83"
-  | .ptfsm2k | .rpmfsm2k => none
+  | .ptfsm2k => some "#e7298a" | .rpmfsm2k => some "#980043"
+
+inductive Model where
+  | shyft (stack : Stack)
+  | lstm
+  deriving Repr, DecidableEq
+
+def Model.key : Model → String
+  | .shyft stack => stack.key
+  | .lstm => "lstm"
+
+def Model.all : List Model := Stack.all.map .shyft ++ [.lstm]
+
+def Model.colour? : Model → Option String
+  | .shyft stack => stack.colour?
+  | .lstm => some "#e31a1c"
+
+inductive Direction where
+  | forward
+  | reverse
+  deriving Repr, DecidableEq
+
+def Direction.key : Direction → String
+  | .forward => "forward"
+  | .reverse => "reverse"
+
+inductive Seed where
+  | v00 | v01 | v02 | v03 | v04
+  deriving Repr, DecidableEq
+
+def Seed.all : List Seed := [.v00, .v01, .v02, .v03, .v04]
+
+def Seed.key : Seed → String
+  | .v00 => "v00" | .v01 => "v01" | .v02 => "v02" | .v03 => "v03" | .v04 => "v04"
+
+inductive ComparisonAxis where
+  | model | goal | direction | pcorr | optimizer | seed
+  deriving Repr, DecidableEq
 
 /-- Meteorological forcing products loaded into the DTSS geo-database. -/
 inductive Forcing where
@@ -75,10 +112,109 @@ def Goal.key : Goal → String
 def Goal.all : List Goal :=
   [.kge, .lkge, .bckge, .kgeLkge, .kgeBckge, .nse, .lnse, .bcnse, .nseLnse, .nseBcnse]
 
-/-- Calibration optimiser. Only BOBYQA is used so far. -/
+/-- Calibration optimisers used by the benchmark. -/
 inductive Optimizer where
   | bobyqa
+  | sceua
   deriving Repr, DecidableEq
+
+inductive MetricFamily where
+  | efficiency
+  | bias
+  | decomposition
+  deriving Repr, DecidableEq
+
+inductive MetricFormulation where
+  | nse
+  | kgeGupta2009
+  | kgeKling2012
+  | pbias
+  | kgeInverseFlow
+  | seasonalNse | seasonalR | seasonalAlpha | seasonalVarianceShare
+  | interannualNse | interannualR | interannualAlpha | interannualVarianceShare
+  | irregularNse | irregularR | irregularAlpha | irregularVarianceShare
+  deriving Repr, DecidableEq
+
+inductive MetricLibrary where
+  | hydroeval
+  | project
+  deriving Repr, DecidableEq
+
+inductive MetricRange where
+  | real
+  | atMostOne
+  | betweenMinusOneAndOne
+  | nonnegative
+  | unitInterval
+  deriving Repr, DecidableEq
+
+inductive MetricOptimum where
+  | higher
+  | lower
+  | targetOne
+  | targetZero
+  | none
+  deriving Repr, DecidableEq
+
+inductive Metric where
+  | nse | kgeGupta | kgeKling | pbias | kgeInverseFlow
+  | seasonalNse | seasonalR | seasonalAlpha | seasonalVarianceShare
+  | interannualNse | interannualR | interannualAlpha | interannualVarianceShare
+  | irregularNse | irregularR | irregularAlpha | irregularVarianceShare
+  deriving Repr, DecidableEq
+
+def Metric.all : List Metric :=
+  [.nse, .kgeGupta, .kgeKling, .pbias, .kgeInverseFlow,
+   .seasonalNse, .seasonalR, .seasonalAlpha, .seasonalVarianceShare,
+   .interannualNse, .interannualR, .interannualAlpha, .interannualVarianceShare,
+   .irregularNse, .irregularR, .irregularAlpha, .irregularVarianceShare]
+
+def Metric.key : Metric → String
+  | .nse => "nse" | .kgeGupta => "kge_gupta_2009" | .kgeKling => "kge_kling_2012"
+  | .pbias => "pbias" | .kgeInverseFlow => "kge_1_over_q"
+  | .seasonalNse => "nse_seasonal" | .seasonalR => "r_seasonal"
+  | .seasonalAlpha => "alpha_seasonal" | .seasonalVarianceShare => "variance_share_seasonal"
+  | .interannualNse => "nse_interannual" | .interannualR => "r_interannual"
+  | .interannualAlpha => "alpha_interannual" | .interannualVarianceShare => "variance_share_interannual"
+  | .irregularNse => "nse_irregular" | .irregularR => "r_irregular"
+  | .irregularAlpha => "alpha_irregular" | .irregularVarianceShare => "variance_share_irregular"
+
+def Metric.family : Metric → MetricFamily
+  | .nse | .kgeGupta | .kgeKling | .kgeInverseFlow => .efficiency
+  | .pbias => .bias
+  | .seasonalNse | .seasonalR | .seasonalAlpha | .seasonalVarianceShare
+  | .interannualNse | .interannualR | .interannualAlpha | .interannualVarianceShare
+  | .irregularNse | .irregularR | .irregularAlpha | .irregularVarianceShare => .decomposition
+
+def Metric.formulation : Metric → MetricFormulation
+  | .nse => .nse | .kgeGupta => .kgeGupta2009 | .kgeKling => .kgeKling2012
+  | .pbias => .pbias | .kgeInverseFlow => .kgeInverseFlow
+  | .seasonalNse => .seasonalNse | .seasonalR => .seasonalR
+  | .seasonalAlpha => .seasonalAlpha | .seasonalVarianceShare => .seasonalVarianceShare
+  | .interannualNse => .interannualNse | .interannualR => .interannualR
+  | .interannualAlpha => .interannualAlpha | .interannualVarianceShare => .interannualVarianceShare
+  | .irregularNse => .irregularNse | .irregularR => .irregularR
+  | .irregularAlpha => .irregularAlpha | .irregularVarianceShare => .irregularVarianceShare
+
+def Metric.library : Metric → MetricLibrary
+  | .nse | .kgeGupta | .kgeKling | .pbias | .kgeInverseFlow => .hydroeval
+  | _ => .project
+
+def Metric.range : Metric → MetricRange
+  | .nse | .kgeGupta | .kgeKling | .kgeInverseFlow
+  | .seasonalNse | .interannualNse | .irregularNse => .atMostOne
+  | .seasonalR | .interannualR | .irregularR => .betweenMinusOneAndOne
+  | .seasonalAlpha | .interannualAlpha | .irregularAlpha => .nonnegative
+  | .seasonalVarianceShare | .interannualVarianceShare | .irregularVarianceShare => .unitInterval
+  | .pbias => .real
+
+def Metric.optimum : Metric → MetricOptimum
+  | .nse | .kgeGupta | .kgeKling | .kgeInverseFlow
+  | .seasonalNse | .seasonalR | .interannualNse | .interannualR
+  | .irregularNse | .irregularR => .higher
+  | .pbias => .targetZero
+  | .seasonalAlpha | .interannualAlpha | .irregularAlpha => .targetOne
+  | .seasonalVarianceShare | .interannualVarianceShare | .irregularVarianceShare => .none
 
 /-- Hydrological regime classes from `calc_hydrological_regime.r`, by the months of
 the two lowest and three highest mean monthly discharges (1961-2019). -/
@@ -166,6 +302,23 @@ def Forcing.covers (f : Forcing) (p : Period) : Bool :=
 #guard (⟨1970, 1, 1⟩ : Date).toDays == 0
 #guard (⟨2000, 3, 1⟩ : Date).toDays == 11017
 #guard Stack.all.length == 7
+#guard Model.all.length == 8
+#guard Model.all.all fun model => model.colour?.isSome
+#guard Model.colour? .lstm == some "#e31a1c"
+#guard Stack.colour? .ptfsm2k == some "#e7298a"
+#guard Stack.colour? .rpmfsm2k == some "#980043"
+#guard Metric.all.eraseDups.length == Metric.all.length
+#guard Metric.all.all fun metric => metric.key != ""
+#guard (Metric.all.filter (·.family == .efficiency)).all (·.optimum == .higher)
+#guard Metric.pbias.optimum == .targetZero
+#guard Metric.seasonalNse.optimum == .higher &&
+  Metric.interannualNse.optimum == .higher && Metric.irregularNse.optimum == .higher
+#guard Metric.seasonalR.optimum == .higher &&
+  Metric.interannualR.optimum == .higher && Metric.irregularR.optimum == .higher
+#guard Metric.seasonalAlpha.optimum == .targetOne &&
+  Metric.interannualAlpha.optimum == .targetOne && Metric.irregularAlpha.optimum == .targetOne
+#guard Metric.seasonalVarianceShare.optimum == .none &&
+  Metric.interannualVarianceShare.optimum == .none && Metric.irregularVarianceShare.optimum == .none
 #guard Goal.all.length == 10
 #guard Goal.all.eraseDups.length == 10
 #guard Stack.all.eraseDups.length == 7

@@ -38,5 +38,25 @@ jobs:
           build: true
           use-github-cache: true
 
+      # Pull requests into a review branch (not main): checks and theorems may only be added;
+      # a changed or removed statement fails and waits for the founder, who records the additions
+      # in audit/fingerprint.tsv once, before the review branch goes to main. Everything else
+      # (main, pull requests into main) is strict. Decided in the script so the log shows why.
       - name: Lean gate
-        run: python scripts/gate.py check
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.base_ref }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          base="${PR_BASE:-$BASE}"  # github.base_ref can say main for a stacked pull request
+          echo "event=$EVENT base_ref=$BASE pull_request.base.ref=$PR_BASE"
+          if [ "$EVENT" = "pull_request" ] && [ -n "$base" ] && [ "$base" != "main" ]; then
+            echo "mode: append-only against $base"
+            git fetch --depth=1 origin "$base"
+            git show "FETCH_HEAD:audit/fingerprint.tsv" > "$RUNNER_TEMP/base-fingerprint.tsv"
+            python scripts/gate.py check --no-committed --mode append-only \
+              --against "$RUNNER_TEMP/base-fingerprint.tsv"
+          else
+            echo "mode: strict"
+            python scripts/gate.py check
+          fi
