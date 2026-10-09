@@ -61,9 +61,13 @@ def resultFilingDesign : DesignUnit := {
 
 def matchedComparisonDesign : DesignUnit := {
   id := matchedComparison.id
-  interfaces := ⟨#[⟨"Experiment.comparableWith", by native_decide⟩,
+  interfaces := ⟨#[⟨"Experiment.variants", by native_decide⟩,
+    ⟨"Experiment.comparableWith", by native_decide⟩,
     ⟨"Experiment.matchedCohort", by native_decide⟩], by native_decide⟩
   tests := ⟨#[⟨"Experiment.comparableWith .direction forwardPeriodExample reversePeriodExample", by native_decide⟩,
+    ⟨"pcorrSeedVariantsExample.variants splits pcorr and seed combinations", by native_decide⟩,
+    ⟨"legacyPtgskComparable pcorr variants compare along .pcorr", by native_decide⟩,
+    ⟨"legacy RPMSTK forward and reverse variants compare along .direction", by native_decide⟩,
     ⟨"Experiment.comparableWith rejects another forcing", by native_decide⟩,
     ⟨"Experiment.comparableWith rejects overlapping and reordered list axes", by native_decide⟩,
     ⟨"Experiment.comparableWith treats unchosen list order as irrelevant", by native_decide⟩],
