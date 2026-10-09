@@ -8,8 +8,8 @@ import pandas as pd
 
 from . import canon, export, figures, table
 
-SLICE_MODELS = ["ptgsk"]
 INTERNAL = canon.ROOT / "build" / "metrics"
+SLICE_MODELS = ["ptgsk"]
 
 
 def experiment_for(spec: dict, model: str) -> dict:
