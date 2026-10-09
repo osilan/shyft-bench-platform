@@ -9,6 +9,7 @@ import pandas as pd
 from . import canon, export, figures, table
 
 INTERNAL = canon.ROOT / "build" / "metrics"
+SLICE_MODELS = ["ptgsk"]
 
 
 def experiment_for(spec: dict, model: str) -> dict:
@@ -19,19 +20,6 @@ def experiment_for(spec: dict, model: str) -> dict:
     if len(found) != 1:
         raise LookupError(f"{spec['id']}: expected one legacy experiment for {model}, got {len(found)}")
     return found[0]
-
-
-def slice_models(spec: dict) -> list[str]:
-    eligible = {
-        model
-        for experiment in canon.load()["catalogue"]
-        if experiment["provenance"] == "zenodo-import"
-        and experiment["forcing"] == spec["forcing"]
-        and experiment["direction"] == spec["direction"]
-        and experiment["optimizer"] == spec["optimizer"]
-        for model in experiment["models"]
-    }
-    return [model["key"] for model in canon.load()["models"] if model["key"] in eligible]
 
 
 def parquet_bytes(frame: pd.DataFrame) -> bytes:
@@ -45,15 +33,14 @@ def build(dist: Path) -> int:
     for spec in specs:
         if spec["view"] != "scoreboard":
             raise NotImplementedError(f"{spec['id']}: only the scoreboard view exists so far")
-    tables, sources, experiment_ids = [], [], []
-    for model in slice_models(specs[0]):
+    tables, sources = [], []
+    for model in SLICE_MODELS:
         experiment = experiment_for(specs[0], model)
         frame, srcs = table.build(experiment["id"], model, specs[0]["optimizer"])
         export.write_once(INTERNAL / f"{experiment['id']}.parquet", parquet_bytes(frame))
         tables.append(frame)
-        experiment_ids.append(experiment["id"])
-        sources += [{"experiment_id": experiment["id"], "path": s.key, "sha256": s.sha256}
-                    for _, s in sorted(srcs.items())]
+        sources += [{"path": s.key, "sha256": s.sha256} for _, s in sorted(srcs.items())]
+        experiment_id = experiment["id"]
     metrics = pd.concat(tables, ignore_index=True)
 
     artifacts, index = [], []
@@ -65,7 +52,7 @@ def build(dist: Path) -> int:
         export.write_once(dist / csv_rel, csv)
         for kind, rel, data in (("figure", svg_rel, svg), ("table", csv_rel, csv)):
             artifacts.append({"id": spec["id"], "kind": kind, "path": rel,
-                              "sha256": export.sha256(data), "experiment_ids": experiment_ids,
+                              "sha256": export.sha256(data), "experiment_id": experiment_id,
                               "sources": sources})
         index.append(export.index_entry(spec))
     (dist / "figure-index.json").write_bytes(export.dumps({"figures": index}))
