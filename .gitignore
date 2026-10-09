@@ -4,3 +4,6 @@ __pycache__/
 runs/
 .venv/
 build/
+dashboard/node_modules/
+dashboard/dist/
+/.dashboard-test-build/
