@@ -287,3 +287,93 @@ requirement text or decisions.
 | P10 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562612) | process | all new guards and theorems | each one broken, seen to fail for the right reason, reverted; listed in `audit/report.md` |
 | P11 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562534), [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562656) | process | `audit/report.md` | rewritten from an actual gate run: correct counts, the fallback as in D-021, no claim of fingerprint acceptance |
 | P12 | [Copilot](https://github.com/osilan/shyft-bench-platform/pull/1#discussion_r4227562572) | process | `audit/fingerprint.tsv` | the founder reviews the statement diff against `main` and runs `gate.py update` last |
+
+## Review round of pull request #1, part 2 (2026-10-09)
+
+P1–P6 and P9 merged (pull request #2). These tasks come from reviewing it. All are bugs or
+process (see "Fixes and the spec" in `AGENTS.md`): no requirement text or decision changes. Each is
+one small sub-branch with a pull request into `copilot/vscode-muzkagwh-mplk`, one task per cloud
+session. Every new `#guard` or theorem a task adds is mutation-checked once by that task (break it,
+see it fail for the right reason, revert) and listed in its pull request.
+
+Order: R1–R4 first (they change `Experiment.lean`), then P10a–d, then P11.
+
+| Task | Kind | Requirement, scenario | Done when |
+|---|---|---|---|
+| R1 | bug | `bench.experiment.catalogue`, "direction is derived from the periods" | guards with validation segments of 364, 365 and 366 days show 364 dropped and 365, 366 kept; changing `minimumValidationDays` to 366 or 800 fails the build |
+| R2 | bug | `bench.experiment.catalogue`, "catalogue is consistent and live" | `Experiment.wellFormed` requires at least one validation segment; a guard shows a forward experiment with 100 days of validation is not well formed |
+| R3 | bug | `bench.compare.matched`, "different forcings cannot be compared" | the different-forcing guard uses a fixture that differs from its partner on the chosen axis and in forcing only, so the guard fails if forcing is made equal |
+| R4 | bug (design) | `bench.compare.matched`, "arms differ only in the chosen axis" | `Experiment.variants` splits an experiment into one pcorr value and one seed (or none) each; guards show the two pcorr variants of `legacyBench .ptgsk` are comparable along `.pcorr`, and the forward variant of `legacyBench .rpmstk` is comparable with the matching `legacyRpmstkReverse` variant along `.direction` |
+| P10a | process | `Domain.lean` | the 9 items below mutated, results recorded |
+| P10b | process | `Experiment.lean` | the 19 items below mutated, results recorded |
+| P10c | process | `Catalog.lean` | the 10 items below mutated, results recorded |
+| P10d | process | `Figures.lean` | the 10 items below mutated, results recorded |
+| P11 | process | `audit/report.md` | rewritten from an actual gate run after P10a–d: counts, survivors, open items |
+
+**How to mutation-check (P10a–d).** Work in a scratch copy, never in the repository source. For each
+item, make **one** change that should break it (change a value, flip a condition, remove a case),
+run `lake build`, record the item, the change and the error, and restore. Do only the listed items,
+in order. Stop after the last item, or after 20 items, whichever comes first. If an item survives
+(the build stays green), record it as a finding with a proposed fix; do not fix it in the same task.
+Record the results as a table in the pull request and append them to `audit/report.md`. Items are
+named by their text, not line numbers, because R1–R4 move lines.
+
+**P10a, `ShyftBench/Domain.lean` (9):**
+1. `#guard Model.all.length == 8`
+2. `#guard Model.all.all fun model => model.colour?.isSome`
+3. `#guard Model.colour? .lstm == some "#e31a1c"`
+4. `#guard Stack.colour? .ptfsm2k == some "#e7298a"`
+5. `#guard Stack.colour? .rpmfsm2k == some "#980043"`
+6. `#guard Metric.all.eraseDups.length == Metric.all.length`
+7. `#guard (Metric.all.filter (·.family == .efficiency)).all (·.optimum == .higher)`
+8. `#guard Metric.seasonalNse.optimum == .higher && …` (the three NSE components)
+9. `#guard Metric.seasonalR.optimum == .higher && …` (the three r components)
+
+**P10b, `ShyftBench/Experiment.lean` (19):**
+1. `#guard forwardPeriodExample.direction? == some .forward`
+2. `#guard middlePeriodExample.direction? == none`
+3. `#guard forwardPeriodExample.validationPeriods? == …`
+4. `#guard reversePeriodExample.validationPeriods? == …`
+5. `#guard middlePeriodExample.validationPeriods? == …`
+6. `#guard (forwardPeriodExample.validationPeriods?).get!.head!.days == …`
+7. `#guard (reversePeriodExample.validationPeriods?).get!.head!.days == …`
+8. `#guard (reversePeriodExample.validationPeriods?).get!.all fun period => …`
+9. `#guard Experiment.comparableWith .direction forwardPeriodExample reversePeriodExample`
+10. `#guard Experiment.comparableWith .optimizer forwardPeriodExample optimizerExample`
+11. `#guard Experiment.comparableWith .pcorr forwardPeriodExample pcorrExample`
+12. `#guard Experiment.comparableWith .seed forwardPeriodExample seedExample`
+13. `#guard Experiment.comparableWith .model forwardPeriodExample modelExample`
+14. `#guard Experiment.comparableWith .goal forwardPeriodExample goalExample`
+15. `#guard Experiment.comparableWith .goal overlappingModelLeft reorderedModelGoal`
+16. the different-forcing guard (as rewritten by R3)
+17. theorem `Experiment.comparableWith_obeys_selected_axis`
+18. theorem `Experiment.comparison_evidence`
+19. theorem `decideLaunch_fallbackPolicy`
+
+**P10c, `ShyftBench/Catalog.lean` (10):**
+1. `#guard legacyRpmstkReverse.direction? == some .reverse`
+2. `#guard smokeExperiment.calibration == …`
+3. `#guard smokeExperiment.calibration.endDay == (⟨2017, 9, 1⟩ : Date).toDays`
+4. `#guard smokeExperiment.simulation == …`
+5. `#guard smokeExperiment.simulation.endDay == (⟨2018, 9, 1⟩ : Date).toDays`
+6. `#guard smokeExperiment.wellFormed`
+7. `#guard smokeExperiment.runCount == 1`
+8. `#guard rpmfsm2kSnow.comparableWith .model ptfsm2kSnow`
+9. `#guard decideLaunch shyftLocalMaster ptfsm2kSnow rpmfsm2kSnow .runFallback == .launch ptfsm2kSnow`
+10. theorem `rpmfsm2kSnow_rejects_other_models`
+
+**P10d, `ShyftBench/Figures.lean` (10):**
+1. `#guard aggregateFigures.length == 35`
+2. `#guard detailBest + detailWorst ≤ maxDetailFigures`
+3. `#guard detailFigures.length ≤ maxDetailFigures`
+4. `#guard (figureGrid.map FigureSpec.id).eraseDups.length == figureGrid.length`
+5. `#guard firstSlice.all aggregateFigures.contains`
+6. `#guard aggregateFigures.all fun f => f.view != .catchmentDetail && f.station.isNone`
+7. `#guard detailFigures.all fun f => f.view == .catchmentDetail && f.station.isSome`
+8. `#guard gridMatches (figureGrid.map FigureSpec.id) (figureGrid.map FigureSpec.id)`
+9. `#guard !gridMatches (figureGrid.map FigureSpec.id) ((figureGrid.map FigureSpec.id).drop 1)`
+10. `#guard !gridMatches (figureGrid.map FigureSpec.id) ("undeclared" :: figureGrid.map FigureSpec.id)`
+
+**Fingerprint.** Each of these pull requests adds or changes guard lines, so the gate's
+fingerprint check fails on it until the founder reviews the added lines and runs
+`python3 scripts/gate.py update` when merging. Agents never run it.
