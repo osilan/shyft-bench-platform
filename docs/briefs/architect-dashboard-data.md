@@ -360,6 +360,4 @@ not mutation-checked: changing the value only re-proves the value. Checks over e
 
 Finding to record, not mutate: the two `detailFigures` guards pass vacuously while the list is empty.
 
-**Fingerprint.** Each of these pull requests adds or changes guard lines, so the gate's
-fingerprint check fails on it until the founder reviews the added lines and runs
-`python3 scripts/gate.py update` when merging. Agents never run it.
+**Fingerprint.** CI checks pull requests into the review branch in append-only mode against that branch's fingerprint: added checks and theorems pass, any changed or removed statement fails and waits for the founder. The founder records all additions once, with `python3 scripts/gate.py update`, before the review branch goes to main, where CI is strict. Agents never run `gate.py update`.
