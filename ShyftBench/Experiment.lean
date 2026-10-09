@@ -215,30 +215,38 @@ theorem Experiment.accepts_model (e : Experiment) (r : ResultKey) (h : e.accepts
 def Experiment.matchedCohort (a b : Experiment) : List StationId :=
   a.catchments.filter b.catchments.contains
 
+def sameMembers [BEq α] (a b : List α) : Bool :=
+  a.all b.contains && b.all a.contains
+
+def differsByOne [BEq α] : List α → List α → Bool
+  | [left], [right] => left != right
+  | _, _ => false
+
 def Experiment.sameOnUnchosenAxes (axis : ComparisonAxis) (a b : Experiment) : Bool :=
   let periodsMatch := a.calibration == b.calibration && a.simulation == b.simulation
   match axis with
-  | .model => periodsMatch && a.goals == b.goals && a.direction? == b.direction? &&
-      a.pcorr == b.pcorr && a.optimizer == b.optimizer && a.seeds == b.seeds
-  | .goal => periodsMatch && a.models == b.models && a.direction? == b.direction? &&
-      a.pcorr == b.pcorr && a.optimizer == b.optimizer && a.seeds == b.seeds
-  | .direction => a.simulation == b.simulation && a.models == b.models && a.goals == b.goals &&
-      a.pcorr == b.pcorr && a.optimizer == b.optimizer && a.seeds == b.seeds
-  | .pcorr => periodsMatch && a.models == b.models && a.goals == b.goals &&
-      a.direction? == b.direction? && a.optimizer == b.optimizer && a.seeds == b.seeds
-  | .optimizer => periodsMatch && a.models == b.models && a.goals == b.goals &&
-      a.direction? == b.direction? && a.pcorr == b.pcorr && a.seeds == b.seeds
-  | .seed => periodsMatch && a.models == b.models && a.goals == b.goals &&
-      a.direction? == b.direction? && a.pcorr == b.pcorr && a.optimizer == b.optimizer
+  | .model => periodsMatch && sameMembers a.goals b.goals && a.direction? == b.direction? &&
+      sameMembers a.pcorr b.pcorr && a.optimizer == b.optimizer && sameMembers a.seeds b.seeds
+  | .goal => periodsMatch && sameMembers a.models b.models && a.direction? == b.direction? &&
+      sameMembers a.pcorr b.pcorr && a.optimizer == b.optimizer && sameMembers a.seeds b.seeds
+  | .direction => a.simulation == b.simulation && sameMembers a.models b.models &&
+      sameMembers a.goals b.goals && sameMembers a.pcorr b.pcorr && a.optimizer == b.optimizer &&
+      sameMembers a.seeds b.seeds
+  | .pcorr => periodsMatch && sameMembers a.models b.models && sameMembers a.goals b.goals &&
+      a.direction? == b.direction? && a.optimizer == b.optimizer && sameMembers a.seeds b.seeds
+  | .optimizer => periodsMatch && sameMembers a.models b.models && sameMembers a.goals b.goals &&
+      a.direction? == b.direction? && sameMembers a.pcorr b.pcorr && sameMembers a.seeds b.seeds
+  | .seed => periodsMatch && sameMembers a.models b.models && sameMembers a.goals b.goals &&
+      a.direction? == b.direction? && sameMembers a.pcorr b.pcorr && a.optimizer == b.optimizer
 
 def Experiment.differsOnAxis (axis : ComparisonAxis) (a b : Experiment) : Bool :=
   match axis with
-  | .model => a.models != b.models
-  | .goal => a.goals != b.goals
+  | .model => differsByOne a.models b.models
+  | .goal => differsByOne a.goals b.goals
   | .direction => a.direction? != b.direction?
-  | .pcorr => a.pcorr != b.pcorr
+  | .pcorr => differsByOne a.pcorr b.pcorr
   | .optimizer => a.optimizer != b.optimizer
-  | .seed => a.seeds != b.seeds
+  | .seed => differsByOne a.seeds b.seeds
 
 /-- Same-forcing experiments with common catchments may be compared along exactly the selected
 axis; every unselected comparison dimension agrees. -/
@@ -304,6 +312,7 @@ def forwardPeriodExample : Experiment where
   calibration := benchCalibration
   simulation := benchSimulation
   pcorr := [true]
+  seeds := [.v00]
 
 def reversePeriodExample : Experiment :=
   { forwardPeriodExample with
@@ -334,15 +343,37 @@ def middlePeriodExample : Experiment :=
 
 def optimizerExample : Experiment := { forwardPeriodExample with optimizer := .sceua }
 def pcorrExample : Experiment := { forwardPeriodExample with pcorr := [false] }
-def seedExample : Experiment := { forwardPeriodExample with seeds := [.v00, .v01] }
+def seedExample : Experiment := { forwardPeriodExample with seeds := [.v01] }
 def modelExample : Experiment := { forwardPeriodExample with models := [.shyft .rpmstk] }
+def goalExample : Experiment := { forwardPeriodExample with goals := [.nse] }
 def otherForcingExample : Experiment := { forwardPeriodExample with forcing := .aifs }
+def overlappingModelLeft : Experiment :=
+  { forwardPeriodExample with models := [.shyft .ptgsk, .shyft .rpmstk] }
+def overlappingModelRight : Experiment :=
+  { forwardPeriodExample with models := [.shyft .ptgsk, .shyft .ptfsm2k] }
+def reorderedModel : Experiment :=
+  { forwardPeriodExample with models := [.shyft .rpmstk, .shyft .ptgsk] }
+def reorderedModelGoal : Experiment :=
+  { reorderedModel with goals := [.nse] }
+def overlappingGoalLeft : Experiment := { forwardPeriodExample with goals := [.kge, .nse] }
+def overlappingGoalRight : Experiment := { forwardPeriodExample with goals := [.kge, .lnse] }
+def overlappingPcorrLeft : Experiment := { forwardPeriodExample with pcorr := [true, false] }
+def overlappingPcorrRight : Experiment := { forwardPeriodExample with pcorr := [true, true] }
+def overlappingSeedLeft : Experiment := { forwardPeriodExample with seeds := [.v00, .v01] }
+def overlappingSeedRight : Experiment := { forwardPeriodExample with seeds := [.v00, .v02] }
 
 #guard Experiment.comparableWith .direction forwardPeriodExample reversePeriodExample
 #guard Experiment.comparableWith .optimizer forwardPeriodExample optimizerExample
 #guard Experiment.comparableWith .pcorr forwardPeriodExample pcorrExample
 #guard Experiment.comparableWith .seed forwardPeriodExample seedExample
 #guard Experiment.comparableWith .model forwardPeriodExample modelExample
+#guard Experiment.comparableWith .goal forwardPeriodExample goalExample
+#guard !Experiment.comparableWith .model overlappingModelLeft overlappingModelRight
+#guard !Experiment.comparableWith .model overlappingModelLeft reorderedModel
+#guard Experiment.comparableWith .goal overlappingModelLeft reorderedModelGoal
+#guard !Experiment.comparableWith .goal overlappingGoalLeft overlappingGoalRight
+#guard !Experiment.comparableWith .pcorr overlappingPcorrLeft overlappingPcorrRight
+#guard !Experiment.comparableWith .seed overlappingSeedLeft overlappingSeedRight
 #guard !Experiment.comparableWith .model forwardPeriodExample otherForcingExample
 
 end ShyftBench

@@ -63,7 +63,10 @@ def matchedComparisonDesign : DesignUnit := {
   interfaces := ⟨#[⟨"Experiment.comparableWith", by native_decide⟩,
     ⟨"Experiment.matchedCohort", by native_decide⟩], by native_decide⟩
   tests := ⟨#[⟨"Experiment.comparableWith .direction forwardPeriodExample reversePeriodExample", by native_decide⟩,
-    ⟨"Experiment.comparableWith rejects another forcing", by native_decide⟩], by native_decide⟩
+    ⟨"Experiment.comparableWith rejects another forcing", by native_decide⟩,
+    ⟨"Experiment.comparableWith rejects overlapping and reordered list axes", by native_decide⟩,
+    ⟨"Experiment.comparableWith treats unchosen list order as irrelevant", by native_decide⟩],
+    by native_decide⟩
   theorems := #[⟨"ShyftBench.Experiment.comparison_evidence", by native_decide⟩]
 }
 
