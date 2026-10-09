@@ -54,13 +54,17 @@ def legacyBench (s : Stack) : Experiment where
   simulation := benchSimulation
   pcorr := [false, true]
 
+def legacyRpmstkReverse : Experiment :=
+  { legacyBench .rpmstk with
+    id := "legacy-rpmstk-reverse"
+    calibration := legacyReverseCalibration }
+
 def zenodoDoi : String := "10.5281/zenodo.15595323"
 
 def catalog : List Entry :=
   [.ptgsk, .ptstk, .ptsthbv, .rpmgsk].map (fun s => ⟨legacyBench s, .zenodoImport zenodoDoi⟩) ++
   [⟨legacyBench .rpmstk, .zenodoImport zenodoDoi⟩,
-   ⟨{ legacyBench .rpmstk with id := "legacy-rpmstk-reverse" },
-     .dtssCollect "/shyft-var/dtss/db/se-bench"⟩,
+   ⟨legacyRpmstkReverse, .dtssCollect "/shyft-var/dtss/db/se-bench"⟩,
    ⟨rpmfsm2kSnow, .future⟩,
    ⟨ptfsm2kSnow, .planned⟩]
 
@@ -98,6 +102,7 @@ def Catalog.live (c : List Entry) : Bool :=
 #guard Catalog.ok catalog
 #guard Catalog.live catalog
 #guard Catalog.planned catalog == [⟨ptfsm2kSnow, .planned⟩]
+#guard legacyRpmstkReverse.direction? == some .reverse
 #guard (stationsIn .mountain)[18]? == some smokeStation
 #guard smokeExperiment.wellFormed
 #guard smokeExperiment.runCount == 1
