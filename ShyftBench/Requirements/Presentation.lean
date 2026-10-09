@@ -30,21 +30,21 @@ requirement exportData where
     given "computed KGE for rpmstk with pcorr on"
     when "the catchment-detail figures are declared"
     then_ "they are the 5 best and the 5 worst catchments, listed explicitly in Lean"
-    check deferred "the metrics are not computed yet"
+    check deferred "the data-dependent station ranking is not yet recorded in Lean"
 
   scenario "every figure and table traces to its sources"
     when "the export is generated"
     then_ "the manifest lists for every figure and table its source files with SHA-256 values, the code version and the Shyft commit"
-    check deferred "the export generator and manifest are not implemented"
+    check deferred "the Python exporter writes source and artifact hashes, but its checks are not represented in Lean"
 
   scenario "no daily series are published"
     when "the export is generated"
     then_ "it contains figures, tables, index, canon, catalogue and manifest, and no daily discharge, SWE or snow-covered-area series"
-    check deferred "the export generator is not implemented"
+    check deferred "the Python exporter limits published files, but its checks are not represented in Lean"
 
 requirement dashboard where
   id "bench.dashboard"
-  shall "Present the results as final, paper-quality figures on a thin static site, like a paper or poster with selectors. Python draws every figure in advance as SVG, and the same files go into the paper. The selectors pick the matching figure, forcing first and then the variants (direction, precipitation correction, optimiser); seeds are not a selector, their spread is shown inside the figures. Each figure has its data table below it. Nothing is computed in the browser. seNorge2018 is the main experiment and the default; results are never compared across forcings. Show only matched comparisons, in the canonical model order and colours, and preserve seed spread without silently selecting a best seed. The figures cover the scoreboard (median over the matched cohort), cumulative distributions, per-catchment model comparisons, calibration-to-validation drop, precipitation-correction effects, both KGE formulations, Ruzzante decomposition, low-flow KGE(1/Q) and flow-duration curves, forward versus reverse, LSTM versus Shyft stacks, seed spread, maps and catchment hydrographs."
+  shall "Present the results as final, paper-quality figures on a thin static site, like a paper or poster with selectors. Python draws every figure in advance as SVG, and the same files go into the paper. The selectors pick the matching figure, forcing first and then the variants (direction, precipitation correction, optimiser); seeds are not a selector, their spread is shown inside the figures. Each figure has its data table below it. Nothing is computed in the browser. seNorge2018 is the main experiment and the default; results are never compared across forcings. Show only matched comparisons, in the canonical model order and colours, and preserve seed spread without silently selecting a best seed. The figures cover the scoreboard (median over the matched cohort), cumulative distributions as small multiples by goal and metric (both KGE formulations, KGE(1/Q) and each Ruzzante decomposition metric, with model curves over a finite matched cohort per panel), per-catchment model comparisons, calibration-to-validation drop, precipitation-correction effects, both KGE formulations, Ruzzante decomposition, low-flow KGE(1/Q) and flow-duration curves, forward versus reverse, LSTM versus Shyft stacks, seed spread, maps and catchment hydrographs."
   strength must
 
   scenario "forcing selects a comparable result set"
@@ -69,13 +69,19 @@ requirement dashboard where
     given "matched metric results for multiple models and goals"
     when "the scoreboard figure is drawn"
     then_ "each model-by-goal value is the median over the matched cohort"
-    check deferred "the scoreboard is not rendered"
+    check deferred "Python tests cover matched-cohort medians and SVG rendering, but LeanSpec has no Python target"
+
+  scenario "cumulative distributions use declared metrics"
+    given "matched results with finite values for multiple models and goals"
+    when "a cumulative distribution is drawn for a goal"
+    then_ "separate metric panels show both KGE formulations, KGE(1/Q) and each Ruzzante decomposition metric, with model curves over the finite catchments matched across models for that panel"
+    check deferred "Python CDF behavior is not covered by Lean guards; LeanSpec has no Python target"
 
   scenario "first slice is published"
     given "the legacy PTGSK seNorge forward BOBYQA results"
     when "the site is published"
     then_ "it shows the scoreboard figure with its table for each pcorr setting"
-    check deferred "the first slice is not built"
+    check deferred "the Python first-slice build exists, but the data-backed export and static site are not published"
 
   scenario "site computes nothing"
     when "the site is built and loaded"
