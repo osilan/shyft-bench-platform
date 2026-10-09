@@ -304,75 +304,61 @@ Order: R1–R4 first (they change `Experiment.lean`), then P10a–d, then P11.
 | R2 | bug | `bench.experiment.catalogue`, "catalogue is consistent and live" | `Experiment.wellFormed` requires at least one validation segment; a guard shows a forward experiment with 100 days of validation is not well formed |
 | R3 | bug | `bench.compare.matched`, "different forcings cannot be compared" | the different-forcing guard uses a fixture that differs from its partner on the chosen axis and in forcing only, so the guard fails if forcing is made equal |
 | R4 | bug (design) | `bench.compare.matched`, "arms differ only in the chosen axis" | `Experiment.variants` splits an experiment into one pcorr value and one seed (or none) each; guards show the two pcorr variants of `legacyBench .ptgsk` are comparable along `.pcorr`, and the forward variant of `legacyBench .rpmstk` is comparable with the matching `legacyRpmstkReverse` variant along `.direction` |
-| P10a | process | `Domain.lean` | the 9 items below mutated, results recorded |
-| P10b | process | `Experiment.lean` | the 19 items below mutated, results recorded |
-| P10c | process | `Catalog.lean` | the 10 items below mutated, results recorded |
-| P10d | process | `Figures.lean` | the 10 items below mutated, results recorded |
+| P10a | process | `Domain.lean` | done in pull request #8 |
+| P10b | process | `Experiment.lean` | the 10 subject mutations below, results recorded |
+| P10c | process | `Catalog.lean` | the 7 subject mutations below, results recorded |
+| P10d | process | `Figures.lean` | the 6 subject mutations below, results recorded |
 | P11 | process | `audit/report.md` | rewritten from an actual gate run after P10a–d: counts, survivors, open items |
 
-**How to mutation-check (P10a–d).** Work in a scratch copy, never in the repository source. For each
-item, make **one** change that should break it (change a value, flip a condition, remove a case),
-run `lake build`, record the item, the change and the error, and restore. Do only the listed items,
-in order. Stop after the last item, or after 20 items, whichever comes first. If an item survives
-(the build stays green), record it as a finding with a proposed fix; do not fix it in the same task.
-Record the results as a table in the pull request and append them to `audit/report.md`. Items are
-named by their text, not line numbers, because R1–R4 move lines.
+**How to mutation-check (P10a–d), revised 2026-10-09.** A mutation breaks the **subject** of a
+check (the definition, data or fixture the check is about) and shows the check notices. It never
+edits the check itself: negating a `#guard`, changing its expected value, or swapping `==`, `≤`,
+`all` in it proves nothing, because such a check can only fail. (The first P10d run did exactly that
+and was discarded.)
 
-**P10a, `ShyftBench/Domain.lean` (9):**
-1. `#guard Model.all.length == 8`
-2. `#guard Model.all.all fun model => model.colour?.isSome`
-3. `#guard Model.colour? .lstm == some "#e31a1c"`
-4. `#guard Stack.colour? .ptfsm2k == some "#e7298a"`
-5. `#guard Stack.colour? .rpmfsm2k == some "#980043"`
-6. `#guard Metric.all.eraseDups.length == Metric.all.length`
-7. `#guard (Metric.all.filter (·.family == .efficiency)).all (·.optimum == .higher)`
-8. `#guard Metric.seasonalNse.optimum == .higher && …` (the three NSE components)
-9. `#guard Metric.seasonalR.optimum == .higher && …` (the three r components)
+For each item: work in a scratch copy, never the repository source; make the **one** subject change
+named in the list; run `lake build`; record the item, the subject you changed, the change, and which
+check failed with its error; restore. If the build stays green, or a different check than the named
+one fails, record a finding with a proposed fix and do not fix it. Do only the listed items, in order,
+and stop after the last one (at most 20). Record the table in the pull request and in
+`audit/mutations/<task>.md`.
 
-**P10b, `ShyftBench/Experiment.lean` (19):**
-1. `#guard forwardPeriodExample.direction? == some .forward`
-2. `#guard middlePeriodExample.direction? == none`
-3. `#guard forwardPeriodExample.validationPeriods? == …`
-4. `#guard reversePeriodExample.validationPeriods? == …`
-5. `#guard middlePeriodExample.validationPeriods? == …`
-6. `#guard (forwardPeriodExample.validationPeriods?).get!.head!.days == …`
-7. `#guard (reversePeriodExample.validationPeriods?).get!.head!.days == …`
-8. `#guard (reversePeriodExample.validationPeriods?).get!.all fun period => …`
-9. `#guard Experiment.comparableWith .direction forwardPeriodExample reversePeriodExample`
-10. `#guard Experiment.comparableWith .optimizer forwardPeriodExample optimizerExample`
-11. `#guard Experiment.comparableWith .pcorr forwardPeriodExample pcorrExample`
-12. `#guard Experiment.comparableWith .seed forwardPeriodExample seedExample`
-13. `#guard Experiment.comparableWith .model forwardPeriodExample modelExample`
-14. `#guard Experiment.comparableWith .goal forwardPeriodExample goalExample`
-15. `#guard Experiment.comparableWith .goal overlappingModelLeft reorderedModelGoal`
-16. the different-forcing guard (as rewritten by R3)
-17. theorem `Experiment.comparableWith_obeys_selected_axis`
-18. theorem `Experiment.comparison_evidence`
-19. theorem `decideLaunch_fallbackPolicy`
+Value-only checks (a colour is a given hex, there are 8 models, a period literal equals itself) are
+not mutation-checked: changing the value only re-proves the value. Checks over empty lists (today
+`detailFigures`) pass vacuously and are listed as findings until the list has entries.
 
-**P10c, `ShyftBench/Catalog.lean` (10):**
-1. `#guard legacyRpmstkReverse.direction? == some .reverse`
-2. `#guard smokeExperiment.calibration == …`
-3. `#guard smokeExperiment.calibration.endDay == (⟨2017, 9, 1⟩ : Date).toDays`
-4. `#guard smokeExperiment.simulation == …`
-5. `#guard smokeExperiment.simulation.endDay == (⟨2018, 9, 1⟩ : Date).toDays`
-6. `#guard smokeExperiment.wellFormed`
-7. `#guard smokeExperiment.runCount == 1`
-8. `#guard rpmfsm2kSnow.comparableWith .model ptfsm2kSnow`
-9. `#guard decideLaunch shyftLocalMaster ptfsm2kSnow rpmfsm2kSnow .runFallback == .launch ptfsm2kSnow`
-10. theorem `rpmfsm2kSnow_rejects_other_models`
+**P10a, `ShyftBench/Domain.lean`: done** (pull request #8; subjects were changed correctly).
 
-**P10d, `ShyftBench/Figures.lean` (10):**
-1. `#guard aggregateFigures.length == 35`
-2. `#guard detailBest + detailWorst ≤ maxDetailFigures`
-3. `#guard detailFigures.length ≤ maxDetailFigures`
-4. `#guard (figureGrid.map FigureSpec.id).eraseDups.length == figureGrid.length`
-5. `#guard firstSlice.all aggregateFigures.contains`
-6. `#guard aggregateFigures.all fun f => f.view != .catchmentDetail && f.station.isNone`
-7. `#guard detailFigures.all fun f => f.view == .catchmentDetail && f.station.isSome`
-8. `#guard gridMatches (figureGrid.map FigureSpec.id) (figureGrid.map FigureSpec.id)`
-9. `#guard !gridMatches (figureGrid.map FigureSpec.id) ((figureGrid.map FigureSpec.id).drop 1)`
-10. `#guard !gridMatches (figureGrid.map FigureSpec.id) ("undeclared" :: figureGrid.map FigureSpec.id)`
+**P10b, `ShyftBench/Experiment.lean` (10), after R1–R4.** Subject change → check that must fail:
+1. `Experiment.direction?`: forward condition `calibration.endDay < simulation.endDay` becomes `≤` and the forward example's calibration is set to the whole simulation → the forward direction guard or `wellFormed` guard.
+2. `Experiment.direction?`: remove the "ends within one year of the simulation end" condition from the reverse branch → `middlePeriodExample.direction? == none`.
+3. `Experiment.validationPeriods?`: remove the `keepLongEnough` filter → the reverse validation guard (one segment, 1979-09-01 to 1999-09-01).
+4. `Experiment.validationPeriods?`: in the reverse branch, drop the segment before the calibration → the reverse validation guard.
+5. `Experiment.comparableWith`: remove the forcing-equality conjunct → the different-forcing guard (as rewritten by R3) and theorem `not_comparableWith_different_forcing`.
+6. `Experiment.comparableWith`: remove the `differsOnAxis` conjunct → theorem `comparableWith_differs_on_chosen_axis` and the overlapping-arm guards.
+7. `Experiment.sameOnUnchosenAxes`, `.model` case: remove the goals condition → a guard comparing along `.model` arms with different goals (add the fixture if none exists, and say so).
+8. `differsByOne`: return `true` for any two lists → the overlapping model, goal, pcorr and seed guards.
+9. `sameMembers`: replace with list equality (`==`) → `comparableWith .goal overlappingModelLeft reorderedModelGoal`.
+10. `decideLaunch`: in the `.runFallback` branch, launch the fallback without `fallback.runsOn pod` → theorem `decideLaunch_runsOn` or `decideLaunch_fallbackPolicy`.
+
+**P10c, `ShyftBench/Catalog.lean` (7), after R2.** Subject change → check that must fail:
+1. `legacyRpmstkReverse`: calibration back to `benchCalibration` → `legacyRpmstkReverse.direction? == some .reverse`.
+2. `smokeExperiment`: calibration 732 days instead of 731 → the calibration end-date guard (2017-09-01).
+3. `smokeExperiment`: simulation starting 2019-09-01 (outside seNorge2018 coverage) → `smokeExperiment.wellFormed`.
+4. `smokeStation`: change to an inland station (e.g. "157.3") → theorem `smoke_ok` and the redraw test `tests/test_smoke_draw.py`.
+5. `ptfsm2kSnow`: pcorr `[true]` only → `rpmfsm2kSnow.comparableWith .model ptfsm2kSnow`.
+6. `shyftLocalMaster`: remove `.ptfsm2k` from its stacks → the `decideLaunch shyftLocalMaster ptfsm2kSnow … == .launch ptfsm2kSnow` guard.
+7. `Experiment.accepts`: remove the `e.models.contains r.model` conjunct → theorem `rpmfsm2kSnow_rejects_other_models` and the guard that rejects a PTFSM2K result.
+
+**P10d, `ShyftBench/Figures.lean` (6).** Subject change → check that must fail:
+1. `aggregateFigures`: append one more scoreboard figure → `aggregateFigures.length == 35`.
+2. `aggregateFigures`: repeat an existing figure → the unique-ids guard.
+3. `aggregateFigures`: drop the `firstSlice ++` prefix → `firstSlice.all aggregateFigures.contains`.
+4. `aggregateFigures`: add a `catchmentDetail` figure with a station → the "aggregate has no detail figures" guard.
+5. `gridMatches`: drop the `published.all declared.contains` half → the undeclared-id guard.
+6. `gridMatches`: drop the `declared.all published.contains` half → the missing-id guard.
+
+Finding to record, not mutate: the two `detailFigures` guards pass vacuously while the list is empty.
 
 **Fingerprint.** Each of these pull requests adds or changes guard lines, so the gate's
 fingerprint check fails on it until the founder reviews the added lines and runs
