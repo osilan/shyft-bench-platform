@@ -1,4 +1,4 @@
-"""`python3 -m pipeline build|check` : first vertical slice (legacy PTGSK, seNorge, forward)."""
+"""Build and check the declared forward legacy figure subset."""
 import argparse
 import io
 import sys
@@ -41,10 +41,7 @@ def parquet_bytes(frame: pd.DataFrame) -> bytes:
 
 
 def build(dist: Path) -> int:
-    specs = canon.declared_figures("first-slice")
-    for spec in specs:
-        if spec["view"] != "scoreboard":
-            raise NotImplementedError(f"{spec['id']}: only the scoreboard view exists so far")
+    specs = canon.declared_figures("forward-legacy-views")
     tables, sources, experiment_ids = [], [], []
     for model in slice_models(specs[0]):
         experiment = experiment_for(specs[0], model)
@@ -58,9 +55,17 @@ def build(dist: Path) -> int:
 
     artifacts, index = [], []
     for spec in specs:
-        board = figures.scoreboard_table(metrics, spec["pcorr"])
+        if spec["view"] == "scoreboard":
+            frame = figures.scoreboard_table(metrics, spec["pcorr"])
+            svg = figures.render_scoreboard(frame)
+        elif spec["view"] == "cdf":
+            frame = figures.cdf_table(metrics, spec)
+            svg = figures.render_cdf(frame, spec)
+        else:
+            frame = figures.diagnostic_table(metrics, spec)
+            svg = figures.render_diagnostic(frame, spec)
         svg_rel, csv_rel = export.figure_paths(spec["id"])
-        svg, csv = figures.render_scoreboard(board), figures.table_csv(board)
+        csv = figures.table_csv(frame)
         export.write_once(dist / svg_rel, svg)
         export.write_once(dist / csv_rel, csv)
         for kind, rel, data in (("figure", svg_rel, svg), ("table", csv_rel, csv)):
@@ -72,7 +77,7 @@ def build(dist: Path) -> int:
     (dist / "canon.json").write_bytes(canon.CANON_PATH.read_bytes())
     (dist / "catalogue.json").write_bytes(export.dumps(canon.load()["catalogue"]))
     (dist / "manifest.json").write_bytes(export.dumps(export.manifest(artifacts)))
-    problems = export.check_dist(dist, "first-slice")
+    problems = export.check_dist(dist, "forward-legacy-views")
     for p in problems:
         print("FAIL:", p)
     print(f"published {len(index)} figures to {dist}")
@@ -83,7 +88,8 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="pipeline")
     parser.add_argument("command", choices=["build", "check"])
     parser.add_argument("--dist", type=Path, default=export.DEFAULT_DIST)
-    parser.add_argument("--scope", choices=["first-slice", "grid"], default="first-slice",
+    parser.add_argument("--scope", choices=["first-slice", "forward-legacy-views", "grid"],
+                        default="forward-legacy-views",
                         help="declared figure set the published ids must equal")
     args = parser.parse_args(argv)
     if args.command == "build":

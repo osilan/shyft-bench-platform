@@ -39,13 +39,18 @@ def catalogue_entry(experiment_id: str) -> dict:
 
 
 def declared_figures(scope: str = "grid") -> list[dict]:
-    """`grid` is the whole declared grid; `first-slice` the first-slice subset."""
+    """Select the whole grid, first slice, or forward legacy export subset."""
     grid = load()["figureGrid"]
     if scope == "grid":
         return grid
     if scope == "first-slice":
         ids = set(load()["firstSlice"])
         return [f for f in grid if f["id"] in ids]
+    if scope == "forward-legacy-views":
+        views = {"scoreboard", "cdf", "kge-compass", "low-flow", "ruzzante"}
+        return [f for f in grid if f["view"] in views and f["forcing"] == "seNorge"
+                and f["direction"] == "forward" and f["optimizer"] == "bobyqa"
+                and f["pcorr"] in (False, True)]
     raise ValueError(scope)
 
 
