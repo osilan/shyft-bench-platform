@@ -127,6 +127,67 @@ class ScoreboardTest(unittest.TestCase):
         self.assertEqual(figures.render_scoreboard(board), figures.render_scoreboard(board))
 
 
+class DiagnosticFigureTest(unittest.TestCase):
+    def setUp(self):
+        self.required_metrics = {
+            "kge-compass": ("kge_gupta_2009", "kge_kling_2012"),
+            "low-flow": ("kge_1_over_q",),
+            "ruzzante": (
+                "nse_seasonal", "r_seasonal", "alpha_seasonal", "variance_share_seasonal",
+                "nse_interannual", "r_interannual", "alpha_interannual",
+                "variance_share_interannual", "nse_irregular", "r_irregular", "alpha_irregular",
+                "variance_share_irregular",
+            ),
+        }
+        self.metrics = pd.DataFrame([
+            (f"synthetic-{model}-{goal}", model, goal, forcing, direction, pcorr, optimizer, seed,
+             "station-a", "validation", metric, float(i), 10, "2001-01-01", "2001-01-10")
+            for forcing in ("seNorge", "other")
+            for direction in ("forward", "reverse")
+            for pcorr in (False, True)
+            for optimizer in ("bobyqa", "sceua")
+            for model in ("ptgsk", "lstm")
+            for goal in ("kge", "nse")
+            for seed in ("seed-11", "seed-22", None)
+            for i, metric in enumerate(dict.fromkeys(
+                    metric for values in self.required_metrics.values() for metric in values))
+        ], columns=table.COLUMNS)
+        self.specs = {
+            view: next(spec for spec in canon.declared_figures("grid")
+                       if spec["view"] == view and spec["pcorr"] is False)
+            for view in self.required_metrics
+        }
+
+    def test_bench_dashboard_diagnostic_views_keep_metric_variant_and_seed_rows(self):
+        for view, spec in self.specs.items():
+            with self.subTest(view=view):
+                rows = figures.diagnostic_table(self.metrics, spec)
+                self.assertEqual(set(rows["metric"]), set(self.required_metrics[view]))
+                self.assertEqual(len(rows), 12 * len(self.required_metrics[view]))
+                self.assertEqual(set(rows["seed"].dropna()), {"seed-11", "seed-22"})
+                self.assertTrue(rows["seed"].isna().any())
+                self.assertEqual(set(rows["model"]), {"ptgsk", "lstm"})
+                self.assertEqual(set(rows["goal"]), {"kge", "nse"})
+                for column in ("forcing", "direction", "pcorr", "optimizer"):
+                    self.assertEqual(set(rows[column]), {spec[column]})
+                self.assertEqual(set(rows["forcing"]), {spec["forcing"]})
+                csv = figures.table_csv(rows)
+                self.assertTrue(set(self.required_metrics[view]).issubset(
+                    {line.split(",")[10] for line in csv.decode().splitlines()[1:]}))
+                self.assertIn(b"seed-11", csv)
+                self.assertIn(b"seed-22", csv)
+                self.assertTrue(csv.startswith(b"experiment_id,"))
+
+    def test_bench_dashboard_diagnostic_svg_and_csv_rendering_is_deterministic(self):
+        for view, spec in self.specs.items():
+            with self.subTest(view=view):
+                rows = figures.diagnostic_table(self.metrics, spec)
+                self.assertEqual(figures.table_csv(rows), figures.table_csv(rows))
+                first = figures.render_diagnostic(rows, spec)
+                self.assertEqual(first, figures.render_diagnostic(rows, spec))
+                self.assertIn(b"<svg", first)
+
+
 class WriteOnceTest(unittest.TestCase):
     def test_bench_export_results_are_never_overwritten(self):
         with tempfile.TemporaryDirectory() as tmp:

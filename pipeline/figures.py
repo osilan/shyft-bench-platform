@@ -19,6 +19,20 @@ from .metrics import EFFICIENCY_KEYS  # noqa: E402
 HEADLINE = "kge_gupta_2009"
 HEADLINE_LABEL = "KGE (Gupta et al., 2009)"
 PERIOD_KIND = "validation"
+DIAGNOSTIC_METRICS = {
+    "kge-compass": ("kge_gupta_2009", "kge_kling_2012"),
+    "low-flow": ("kge_1_over_q",),
+    "ruzzante": (
+        "nse_seasonal", "r_seasonal", "alpha_seasonal", "variance_share_seasonal",
+        "nse_interannual", "r_interannual", "alpha_interannual", "variance_share_interannual",
+        "nse_irregular", "r_irregular", "alpha_irregular", "variance_share_irregular",
+    ),
+}
+DIAGNOSTIC_LABELS = {
+    "kge-compass": "KGE formulation comparison",
+    "low-flow": "Low-flow KGE",
+    "ruzzante": "Ruzzante decomposition",
+}
 
 plt.rcParams.update({
     "svg.fonttype": "path", "svg.hashsalt": "shyft-bench", "font.family": "DejaVu Sans",
@@ -108,3 +122,93 @@ def render_scoreboard(frame: pd.DataFrame) -> bytes:
     fig.savefig(buffer, format="svg", metadata={"Date": None, "Creator": "shyft-bench-platform"})
     plt.close(fig)
     return buffer.getvalue()
+
+
+def diagnostic_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
+    """Select one Lean-declared diagnostic view without collapsing its variants or seeds."""
+    view = spec["view"]
+    if view not in DIAGNOSTIC_METRICS:
+        raise ValueError(f"unsupported diagnostic view: {view}")
+    required = {"model", "goal", "forcing", "direction", "pcorr", "optimizer", "seed",
+                "station", "metric", "value"}
+    missing = required - set(table.columns)
+    if missing:
+        raise ValueError(f"metric table is missing columns: {sorted(missing)}")
+    rows = table
+    for column in ("forcing", "direction", "pcorr", "optimizer"):
+        value = spec[column]
+        rows = rows[rows[column].isna()] if value is None else rows[rows[column] == value]
+    rows = rows[rows["metric"].isin(DIAGNOSTIC_METRICS[view])]
+    return rows.sort_values(list(rows.columns), kind="stable", na_position="first",
+                            ignore_index=True)
+
+
+def _sample_columns(frame: pd.DataFrame) -> list[str]:
+    return [column for column in frame.columns if column not in {"metric", "value"}]
+
+
+def _sample_label(row: pd.Series) -> str:
+    fields = [str(row[column]) for column in ("model", "goal", "station") if column in row]
+    seed = row["seed"] if "seed" in row else None
+    fields.append(f"seed={seed if pd.notna(seed) else 'none'}")
+    if "experiment_id" in row:
+        fields.insert(0, str(row["experiment_id"]))
+    return " / ".join(fields)
+
+
+def _diagnostic_title(spec: dict) -> str:
+    pcorr = "on" if spec["pcorr"] else "off"
+    direction = spec["direction"] if spec["direction"] is not None else "all"
+    return (f"{DIAGNOSTIC_LABELS[spec['view']]} — forcing {spec['forcing']}; "
+            f"direction {direction}; pcorr {pcorr}; optimizer {spec['optimizer']}")
+
+
+def _save_diagnostic(fig) -> bytes:
+    fig.tight_layout()
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format="svg", metadata={"Date": None, "Creator": "shyft-bench-platform"})
+    plt.close(fig)
+    return buffer.getvalue()
+
+
+def render_diagnostic(frame: pd.DataFrame, spec: dict) -> bytes:
+    """Render a diagnostic view, keeping individual stations, goals and seeds visible."""
+    view = spec["view"]
+    if view not in DIAGNOSTIC_METRICS:
+        raise ValueError(f"unsupported diagnostic view: {view}")
+    if frame.empty:
+        raise ValueError(f"{view} view has no metric rows")
+
+    identity = _sample_columns(frame)
+    fig, ax = plt.subplots(figsize=(max(7.2, min(18, len(frame) * 0.28)), 4.2))
+    if view == "kge-compass":
+        wide = frame.pivot(index=identity, columns="metric", values="value")
+        points = wide.loc[:, list(DIAGNOSTIC_METRICS[view])].dropna()
+        ax.scatter(points.iloc[:, 0], points.iloc[:, 1], color="#2166ac", s=22)
+        for row, (x, y) in zip(points.reset_index().to_dict("records"),
+                               points.itertuples(index=False, name=None)):
+            ax.annotate(_sample_label(pd.Series(row)), (x, y), fontsize=5, alpha=0.7)
+        ax.set_xlabel("KGE (Gupta et al., 2009)")
+        ax.set_ylabel("KGE (Kling et al., 2012)")
+    elif view == "low-flow":
+        labels = [_sample_label(row) for _, row in frame.iterrows()]
+        ax.scatter(range(len(frame)), frame["value"], color="#d6604d", s=22)
+        ax.set_xticks(range(len(frame)), labels, rotation=90, ha="center", fontsize=6)
+        ax.set_ylabel("KGE(1/Q)")
+        ax.set_xlabel("Model / goal / station / seed")
+    else:
+        metrics = list(DIAGNOSTIC_METRICS[view])
+        positions = np.arange(len(metrics))
+        groups = frame.groupby(identity, sort=True, dropna=False)
+        for _, sample in groups:
+            values = sample.set_index("metric")["value"].reindex(metrics)
+            label = _sample_label(sample.iloc[0])
+            ax.plot(positions, values, marker="o", markersize=2.5, linewidth=0.7, label=label)
+        ax.set_xticks(positions, [metric.replace("_", " ") for metric in metrics],
+                      rotation=45, ha="right", fontsize=6)
+        ax.set_ylabel("Characterized metric value")
+        ax.set_xlabel("Ruzzante component")
+        ax.legend(frameon=False, fontsize=5, title="Model / goal / station / seed")
+    ax.set_title(_diagnostic_title(spec), fontsize=7.5, loc="left")
+    ax.grid(axis="x", visible=False)
+    return _save_diagnostic(fig)
