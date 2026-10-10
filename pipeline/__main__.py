@@ -41,7 +41,7 @@ def parquet_bytes(frame: pd.DataFrame) -> bytes:
 
 
 def build(dist: Path) -> int:
-    specs = canon.declared_figures("forward-legacy-views")
+    specs = canon.declared_figures("published")
     tables, sources, experiment_ids = [], [], []
     for model in slice_models(specs[0]):
         experiment = experiment_for(specs[0], model)
@@ -77,7 +77,7 @@ def build(dist: Path) -> int:
     (dist / "canon.json").write_bytes(canon.CANON_PATH.read_bytes())
     (dist / "catalogue.json").write_bytes(export.dumps(canon.load()["catalogue"]))
     (dist / "manifest.json").write_bytes(export.dumps(export.manifest(artifacts)))
-    problems = export.check_dist(dist, "forward-legacy-views")
+    problems = export.check_dist(dist, "published")
     for p in problems:
         print("FAIL:", p)
     print(f"published {len(index)} figures to {dist}")
@@ -88,8 +88,8 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="pipeline")
     parser.add_argument("command", choices=["build", "check"])
     parser.add_argument("--dist", type=Path, default=export.DEFAULT_DIST)
-    parser.add_argument("--scope", choices=["first-slice", "forward-legacy-views", "grid"],
-                        default="forward-legacy-views",
+    parser.add_argument("--scope", choices=["first-slice", "published", "grid"],
+                        default="published",
                         help="declared figure set the published ids must equal")
     args = parser.parse_args(argv)
     if args.command == "build":

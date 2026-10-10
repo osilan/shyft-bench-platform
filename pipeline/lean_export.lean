@@ -60,6 +60,7 @@ private def canon : Json :=
       Json.mkObj [("id", str s), ("regime", str r.name)])),
     ("catalogue", arr (catalog.map entryJson)),
     ("firstSlice", arr (firstSlice.map (str ·.id))),
+    ("published", arr (published.map (str ·.id))),
     ("figureGrid", arr (figureGrid.map figureJson))]
 
 def main : IO Unit := IO.println canon.pretty

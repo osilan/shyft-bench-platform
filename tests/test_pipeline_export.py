@@ -117,14 +117,10 @@ class BuildTest(unittest.TestCase):
             manifest = json.loads((dist / "manifest.json").read_text())
             self.assertEqual(manifest["artifacts"], manifest_artifacts)
 
-    def test_bench_export_builds_all_forward_legacy_views_from_lean_specs(self):
-        specs = canon.declared_figures("forward-legacy-views")
-        expected = [
-            spec["id"] for spec in canon.declared_figures("grid")
-            if spec["view"] in {"scoreboard", "cdf", "kge-compass", "low-flow", "ruzzante"}
-            and spec["forcing"] == "seNorge" and spec["direction"] == "forward"
-            and spec["optimizer"] == "bobyqa" and spec["pcorr"] in (False, True)
-        ]
+    def test_bench_export_builds_all_published_figures_from_lean_ids(self):
+        specs = canon.declared_figures("published")
+        expected = canon.load()["published"]
+        self.assertEqual(len(expected), 10)
         self.assertEqual([spec["id"] for spec in specs], expected)
         with tempfile.TemporaryDirectory() as tmp:
             dist = Path(tmp) / "dist"
@@ -155,7 +151,7 @@ class BuildTest(unittest.TestCase):
             self.assertEqual(rendered.count("ruzzante"), 2)
             self.assertEqual(len(list((dist / "figures").glob("*.svg"))), len(specs))
             self.assertEqual(len(list((dist / "tables").glob("*.csv"))), len(specs))
-            self.assertEqual(export.check_dist(dist, "forward-legacy-views"), [])
+            self.assertEqual(export.check_dist(dist, "published"), [])
 
 
 class ScoreboardTest(unittest.TestCase):
@@ -406,6 +402,32 @@ class GridCheckTest(unittest.TestCase):
             self.fake_dist(Path(tmp), self.first_slice_ids())
             self.assertEqual(export.check_dist(Path(tmp), "first-slice"), [])
 
+    def test_bench_export_published_set_matches_the_declaration(self):
+        published = canon.load()["published"]
+        with tempfile.TemporaryDirectory() as tmp:
+            self.fake_dist(Path(tmp), published)
+            self.assertEqual(export.check_dist(Path(tmp), "published"), [])
+
+    def test_bench_export_published_set_missing_a_figure_fails(self):
+        published = canon.load()["published"]
+        with tempfile.TemporaryDirectory() as tmp:
+            self.fake_dist(Path(tmp), published[:-1])
+            problems = export.check_dist(Path(tmp), "published")
+            self.assertTrue(any(f"declared figure missing: {published[-1]}" in p for p in problems))
+
+    def test_bench_export_published_set_with_an_extra_figure_fails(self):
+        extra = next(f["id"] for f in canon.declared_figures("grid")
+                     if f["id"] not in canon.load()["published"])
+        with tempfile.TemporaryDirectory() as tmp:
+            self.fake_dist(Path(tmp), canon.load()["published"] + [extra])
+            problems = export.check_dist(Path(tmp), "published")
+            self.assertTrue(any(f"undeclared figure published: {extra}" in p for p in problems))
+
+    def test_bench_export_the_first_slice_alone_is_not_the_published_set(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.fake_dist(Path(tmp), self.first_slice_ids())
+            self.assertTrue(export.check_dist(Path(tmp), "published"))
+
     def test_bench_export_requires_canon_and_catalogue(self):
         with tempfile.TemporaryDirectory() as tmp:
             dist = Path(tmp)
@@ -457,7 +479,7 @@ class GridCheckTest(unittest.TestCase):
                      importer.legacy_output_dir().is_dir(),
                      "set SHYFT_BENCH_SLOW=1 with the legacy results available")
 class FirstSliceTest(unittest.TestCase):
-    def test_bench_export_forward_legacy_views_build_and_match_declared_ids(self):
+    def test_bench_export_published_figures_build_and_match_declared_ids(self):
         with tempfile.TemporaryDirectory() as tmp:
             old = cli.INTERNAL
             cli.INTERNAL = Path(tmp) / "metrics"
@@ -467,7 +489,7 @@ class FirstSliceTest(unittest.TestCase):
                 cli.INTERNAL = old
             index = json.loads((Path(tmp) / "dist" / "figure-index.json").read_text())
             self.assertEqual([f["id"] for f in index["figures"]],
-                             [spec["id"] for spec in canon.declared_figures("forward-legacy-views")])
+                             canon.load()["published"])
             metrics_files = sorted((Path(tmp) / "metrics").glob("*.parquet"))
             self.assertEqual(len(metrics_files), len(cli.slice_models(canon.declared_figures("first-slice")[0])))
             expected_metrics = {metric["key"] for metric in canon.load()["metrics"]}

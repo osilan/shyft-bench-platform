@@ -131,7 +131,11 @@ def decisions : List Decision := [
   { id := "D-029", date := "2026-10-09"
     decided := "The published first slice is the seNorge forward BOBYQA scoreboard for all five legacy Shyft stacks: ptgsk, ptstk, ptsthbv, rpmgsk and rpmstk. Publish one SVG figure with its CSV table for each precipitation-correction setting; include all five stacks in canonical model order and use matched catchment cohorts for model-goal medians."
     why := "A PTGSK-only first slice cannot exercise the planned matched cross-stack comparison; the five named legacy stacks share the selected forcing, direction and optimiser."
-    refines := ["bench.dashboard", "bench.export", "bench.compare.matched"] }
+    refines := ["bench.dashboard", "bench.export", "bench.compare.matched"] },
+  { id := "D-030", date := "2026-10-10"
+    decided := "The site publishes the figures in Figures.published: the five forward legacy views for the five legacy stacks, with pcorr off and on. Figures outside this set are not published until a later decision adds them."
+    why := "An explicit published subset lets the export and site share a bounded, Lean-declared release set while the remaining aggregate figures are still future work."
+    refines := ["bench.export", "bench.dashboard"] }
 ]
 
 end ShyftBench

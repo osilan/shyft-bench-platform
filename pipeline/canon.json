@@ -115,6 +115,17 @@
   {"name": "Atlantic", "colour": "#d6604d", "code": 3},
   {"name": "Baltic", "colour": "#f4a582", "code": 4},
   {"name": "Transition", "colour": "#4dac26", "code": 0}],
+ "published":
+ ["scoreboard-seNorge-dir-forward-pcorr-off-bobyqa",
+  "scoreboard-seNorge-dir-forward-pcorr-on-bobyqa",
+  "cdf-seNorge-dir-forward-pcorr-off-bobyqa",
+  "cdf-seNorge-dir-forward-pcorr-on-bobyqa",
+  "kge-compass-seNorge-dir-forward-pcorr-off-bobyqa",
+  "kge-compass-seNorge-dir-forward-pcorr-on-bobyqa",
+  "low-flow-seNorge-dir-forward-pcorr-off-bobyqa",
+  "low-flow-seNorge-dir-forward-pcorr-on-bobyqa",
+  "ruzzante-seNorge-dir-forward-pcorr-off-bobyqa",
+  "ruzzante-seNorge-dir-forward-pcorr-on-bobyqa"],
  "models":
  [{"key": "ptstk", "colour": "#4393c3"},
   {"key": "rpmstk", "colour": "#2166ac"},
