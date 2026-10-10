@@ -46,7 +46,7 @@ requirement exportData where
     given "an export to publish"
     when "the export is published"
     then_ "its figure ids equal the ids in Figures.published, with none missing and none extra"
-    check deferred "the published-set check is not implemented yet (issue #31); Python validates only firstSlice or figureGrid"
+    check deferred "Python `pipeline check --scope published` enforces the set against the exported published list, but its checks are not represented in Lean"
 
 requirement dashboard where
   id "bench.dashboard"
