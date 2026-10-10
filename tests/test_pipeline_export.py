@@ -186,6 +186,21 @@ class DiagnosticFigureTest(unittest.TestCase):
                 first = figures.render_diagnostic(rows, spec)
                 self.assertEqual(first, figures.render_diagnostic(rows, spec))
                 self.assertIn(b"<svg", first)
+                svg = first.decode()
+                self.assertIn("ptgsk", svg)
+                self.assertIn("lstm", svg)
+                labels = {
+                    "kge-compass": ["KGE (Gupta et al., 2009)", "KGE (Kling et al., 2012)"],
+                    "low-flow": ["KGE(1/Q)"],
+                    "ruzzante": ["nse seasonal", "r seasonal", "alpha seasonal",
+                                 "variance share seasonal", "nse interannual",
+                                 "r interannual", "alpha interannual",
+                                 "variance share interannual", "nse irregular",
+                                 "r irregular", "alpha irregular",
+                                 "variance share irregular"],
+                }
+                for label in labels[view]:
+                    self.assertIn(label, svg)
 
 
 class WriteOnceTest(unittest.TestCase):

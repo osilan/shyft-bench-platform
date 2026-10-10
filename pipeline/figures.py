@@ -34,6 +34,16 @@ DIAGNOSTIC_LABELS = {
     "ruzzante": "Ruzzante decomposition",
 }
 
+
+def canonical_metric_order(view: str) -> tuple[str, ...]:
+    keys = set(DIAGNOSTIC_METRICS[view])
+    return tuple(metric["key"] for metric in canon.load()["metrics"] if metric["key"] in keys)
+
+
+def canonical_model_order() -> dict[str, int]:
+    return {model["key"]: i for i, model in enumerate(canon.load()["models"])}
+
+
 plt.rcParams.update({
     "svg.fonttype": "path", "svg.hashsalt": "shyft-bench", "font.family": "DejaVu Sans",
     "font.size": 8, "axes.linewidth": 0.6, "axes.spines.top": False, "axes.spines.right": False,
@@ -139,8 +149,13 @@ def diagnostic_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
         value = spec[column]
         rows = rows[rows[column].isna()] if value is None else rows[rows[column] == value]
     rows = rows[rows["metric"].isin(DIAGNOSTIC_METRICS[view])]
-    return rows.sort_values(list(rows.columns), kind="stable", na_position="first",
-                            ignore_index=True)
+    model_order = canonical_model_order()
+    metric_order = {metric: i for i, metric in enumerate(canonical_metric_order(view))}
+    rows = rows.assign(_model_rank=rows["model"].map(model_order.get),
+                       _metric_rank=rows["metric"].map(metric_order.get)).sort_values(
+        ["_model_rank", "model", "goal", "station", "seed", "_metric_rank", "metric"],
+        kind="stable", na_position="first", ignore_index=True)
+    return rows.drop(columns=["_model_rank", "_metric_rank"])
 
 
 def _sample_columns(frame: pd.DataFrame) -> list[str]:
@@ -181,29 +196,38 @@ def render_diagnostic(frame: pd.DataFrame, spec: dict) -> bytes:
 
     identity = _sample_columns(frame)
     fig, ax = plt.subplots(figsize=(max(7.2, min(18, len(frame) * 0.28)), 4.2))
+    colors = canon.model_colours()
     if view == "kge-compass":
+        metrics = list(canonical_metric_order(view))
         wide = frame.pivot(index=identity, columns="metric", values="value")
-        points = wide.loc[:, list(DIAGNOSTIC_METRICS[view])].dropna()
-        ax.scatter(points.iloc[:, 0], points.iloc[:, 1], color="#2166ac", s=22)
-        for row, (x, y) in zip(points.reset_index().to_dict("records"),
-                               points.itertuples(index=False, name=None)):
+        points = wide.loc[:, metrics].dropna()
+        for row in points.reset_index().to_dict("records"):
+            model = row.get("model")
+            color = colors.get(model, "#000000")
+            x, y = row[metrics[0]], row[metrics[1]]
+            ax.scatter(x, y, color=color, s=22)
             ax.annotate(_sample_label(pd.Series(row)), (x, y), fontsize=5, alpha=0.7)
         ax.set_xlabel("KGE (Gupta et al., 2009)")
         ax.set_ylabel("KGE (Kling et al., 2012)")
     elif view == "low-flow":
         labels = [_sample_label(row) for _, row in frame.iterrows()]
-        ax.scatter(range(len(frame)), frame["value"], color="#d6604d", s=22)
+        for index, row in frame.iterrows():
+            color = colors.get(row["model"], "#000000")
+            ax.scatter(index, row["value"], color=color, s=22)
         ax.set_xticks(range(len(frame)), labels, rotation=90, ha="center", fontsize=6)
         ax.set_ylabel("KGE(1/Q)")
         ax.set_xlabel("Model / goal / station / seed")
     else:
-        metrics = list(DIAGNOSTIC_METRICS[view])
+        metrics = list(canonical_metric_order(view))
         positions = np.arange(len(metrics))
-        groups = frame.groupby(identity, sort=True, dropna=False)
+        groups = frame.groupby(identity, sort=False, dropna=False)
         for _, sample in groups:
             values = sample.set_index("metric")["value"].reindex(metrics)
             label = _sample_label(sample.iloc[0])
-            ax.plot(positions, values, marker="o", markersize=2.5, linewidth=0.7, label=label)
+            model = sample.iloc[0]["model"]
+            color = colors.get(model, "#000000")
+            ax.plot(positions, values, marker="o", markersize=2.5, linewidth=0.7,
+                    color=color, label=label)
         ax.set_xticks(positions, [metric.replace("_", " ") for metric in metrics],
                       rotation=45, ha="right", fontsize=6)
         ax.set_ylabel("Characterized metric value")
