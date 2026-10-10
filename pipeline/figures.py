@@ -60,12 +60,14 @@ def goal_label(goal: str) -> str:
     return goal.upper().replace("_", "+")
 
 
-def matched_cohort(table: pd.DataFrame, models: list[str], goal: str) -> list[str]:
-    """Stations with finite headline values for every model and both pcorr arms."""
+def matched_cohort(table: pd.DataFrame, models: list[str], goal: str,
+                   metric: str = HEADLINE,
+                   pcorrs: tuple[bool, ...] = (False, True)) -> list[str]:
+    """Stations with finite values for every model and requested pcorr arm."""
     sub = table[table["model"].isin(models) & (table["goal"] == goal)
-                & (table["metric"] == HEADLINE) & (table["period_kind"] == PERIOD_KIND)]
+                & (table["metric"] == metric) & (table["period_kind"] == PERIOD_KIND)]
     sub = sub[np.isfinite(sub["value"])]
-    required = {(model, pcorr) for model in models for pcorr in (False, True)}
+    required = {(model, pcorr) for model in models for pcorr in pcorrs}
     return sorted(
         station for station, rows in sub.groupby("station")
         if required.issubset(set(zip(rows["model"], rows["pcorr"])))
@@ -168,11 +170,9 @@ def cdf_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
             models = [model for model in model_order if model in set(panel_selected["model"])]
             if not models:
                 continue
-            cohorts = [
-                set(panel.loc[panel["model"] == model, "station"])
-                for model in models
-            ]
-            cohort = set.intersection(*cohorts)
+            cohort = matched_cohort(
+                selected, models, goal, metric=metric, pcorrs=(spec["pcorr"],)
+            )
             if not cohort:
                 continue
             matched = panel[panel["station"].isin(cohort)].copy()

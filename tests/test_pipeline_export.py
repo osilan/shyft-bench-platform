@@ -263,7 +263,13 @@ class CdfFigureTest(unittest.TestCase):
             ("kge_kling_2012", "nse", "ptgsk", "y", None, 0.5, "base"),
             ("kge_kling_2012", "nse", "lstm", "y", None, 0.6, "base"),
         ])
-        result = figures.cdf_table(self.rows(values), self.spec)
+        with patch.object(figures, "matched_cohort", wraps=figures.matched_cohort) as cohort:
+            result = figures.cdf_table(self.rows(values), self.spec)
+        self.assertTrue(any(
+            call.args[2] == "kge"
+            and call.kwargs == {"metric": "kge_gupta_2009", "pcorrs": (False,)}
+            for call in cohort.call_args_list
+        ))
         panel = result[(result["metric"] == "kge_gupta_2009") & (result["goal"] == "kge")]
         self.assertEqual(set(panel["station"]), {"a", "b", "c", "d"})
         ptgsk = panel[panel["model"] == "ptgsk"].set_index("station")
