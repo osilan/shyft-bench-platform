@@ -28,6 +28,10 @@ DIAGNOSTIC_METRICS = {
         "nse_irregular", "r_irregular", "alpha_irregular", "variance_share_irregular",
     ),
 }
+CDF_METRICS = (
+    "kge_gupta_2009", "kge_kling_2012", "kge_1_over_q",
+    *DIAGNOSTIC_METRICS["ruzzante"],
+)
 DIAGNOSTIC_LABELS = {
     "kge-compass": "KGE formulation comparison",
     "low-flow": "Low-flow KGE",
@@ -36,7 +40,7 @@ DIAGNOSTIC_LABELS = {
 
 
 def canonical_metric_order(view: str) -> tuple[str, ...]:
-    keys = set(DIAGNOSTIC_METRICS[view])
+    keys = set(CDF_METRICS if view == "cdf" else DIAGNOSTIC_METRICS[view])
     return tuple(metric["key"] for metric in canon.load()["metrics"] if metric["key"] in keys)
 
 
@@ -128,6 +132,113 @@ def render_scoreboard(frame: pd.DataFrame) -> bytes:
                  f"precipitation correction {first['pcorr']}; {PERIOD_KIND} period; "
                  f"matched cohort n = {n} catchments", fontsize=7.5, loc="left")
     fig.tight_layout()
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format="svg", metadata={"Date": None, "Creator": "shyft-bench-platform"})
+    plt.close(fig)
+    return buffer.getvalue()
+
+
+def cdf_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
+    """Build per-metric, per-goal empirical CDFs over shared finite station cohorts."""
+    required = {"model", "goal", "forcing", "direction", "pcorr", "optimizer",
+                "station", "metric", "value"}
+    missing = required - set(table.columns)
+    if missing:
+        raise ValueError(f"metric table is missing columns: {sorted(missing)}")
+    rows = table
+    for column in ("forcing", "direction", "pcorr", "optimizer"):
+        value = spec[column]
+        rows = rows[rows[column].isna()] if value is None else rows[rows[column] == value]
+    if "period_kind" in rows:
+        rows = rows[rows["period_kind"] == PERIOD_KIND]
+    rows = rows[rows["metric"].isin(CDF_METRICS)].copy()
+    rows["value"] = pd.to_numeric(rows["value"], errors="coerce")
+    selected = rows
+    rows = rows[np.isfinite(rows["value"]) & rows["station"].notna()]
+
+    model_order = canonical_model_order()
+    metric_order = {metric: i for i, metric in enumerate(canonical_metric_order("cdf"))}
+    goals = canon.load()["goals"]
+    output = []
+    for metric in canonical_metric_order("cdf"):
+        for goal in goals:
+            panel_selected = selected[(selected["metric"] == metric) & (selected["goal"] == goal)]
+            panel = rows[(rows["metric"] == metric) & (rows["goal"] == goal)]
+            models = [model for model in model_order if model in set(panel_selected["model"])]
+            if not models:
+                continue
+            cohorts = [
+                set(panel.loc[panel["model"] == model, "station"])
+                for model in models
+            ]
+            cohort = set.intersection(*cohorts)
+            if not cohort:
+                continue
+            matched = panel[panel["station"].isin(cohort)].copy()
+            matched["cumulative_probability"] = matched.groupby(
+                "model", sort=False
+            )["value"].rank(method="max", pct=True)
+            matched["_metric_rank"] = metric_order[metric]
+            matched["_goal_rank"] = goals.index(goal)
+            matched["_model_rank"] = matched["model"].map(model_order)
+            output.append(matched)
+    if not output:
+        return rows.iloc[0:0].assign(cumulative_probability=pd.Series(dtype=float))
+    result = pd.concat(output, ignore_index=True)
+    sort_columns = ["_metric_rank", "_goal_rank", "_model_rank", "value", "station"]
+    sort_columns += [column for column in ("variant", "seed") if column in result]
+    result = result.sort_values(sort_columns, kind="stable", na_position="first", ignore_index=True)
+    return result.drop(columns=["_metric_rank", "_goal_rank", "_model_rank"])
+
+
+def render_cdf(frame: pd.DataFrame, spec: dict) -> bytes:
+    """Render metric-by-goal empirical CDF panels with one curve per model."""
+    if frame.empty:
+        raise ValueError("cdf view has no matched finite metric rows")
+    metrics = canonical_metric_order("cdf")
+    goals = canon.load()["goals"]
+    models = [model for model in canonical_model_order() if model in set(frame["model"])]
+    colours = canon.model_colours()
+    fig, axes = plt.subplots(
+        len(metrics), len(goals), figsize=(1.9 * len(goals), 1.15 * len(metrics)),
+        squeeze=False, sharey=True,
+    )
+    for metric_index, metric in enumerate(metrics):
+        for goal_index, goal in enumerate(goals):
+            ax = axes[metric_index, goal_index]
+            panel = frame[(frame["metric"] == metric) & (frame["goal"] == goal)]
+            for model in models:
+                curve = panel[panel["model"] == model].sort_values(
+                    "value", kind="stable", ignore_index=True
+                )
+                if not curve.empty:
+                    ax.step(curve["value"], curve["cumulative_probability"], where="post",
+                            color=colours.get(model, "#000000"), linewidth=0.8)
+            if metric_index == 0:
+                ax.set_title(goal_label(goal), fontsize=6)
+            if goal_index == 0:
+                ax.set_ylabel(metric.replace("_", " "), fontsize=6)
+            if metric_index == len(metrics) - 1:
+                ax.set_xlabel("Value", fontsize=6)
+            ax.set_ylim(0, 1)
+            ax.set_yticks((0, 1))
+            ax.tick_params(labelsize=5, length=2)
+            ax.grid(axis="x", visible=False)
+    handles = [
+        plt.Line2D([0], [0], color=colours.get(model, "#000000"), linewidth=1,
+                   label=model.upper())
+        for model in models
+    ]
+    fig.legend(handles=handles, frameon=False, loc="upper center", ncols=max(len(models), 1),
+               fontsize=6)
+    direction = spec["direction"] if spec["direction"] is not None else "all"
+    pcorr = "on" if spec["pcorr"] else "off"
+    fig.suptitle(
+        f"Cumulative distributions — forcing {spec['forcing']}; direction {direction}; "
+        f"pcorr {pcorr}; optimizer {spec['optimizer']}",
+        fontsize=8, y=0.998,
+    )
+    fig.tight_layout(rect=(0, 0, 1, 0.985))
     buffer = io.BytesIO()
     fig.savefig(buffer, format="svg", metadata={"Date": None, "Creator": "shyft-bench-platform"})
     plt.close(fig)

@@ -203,6 +203,92 @@ class DiagnosticFigureTest(unittest.TestCase):
                     self.assertIn(label, svg)
 
 
+class CdfFigureTest(unittest.TestCase):
+    def setUp(self):
+        self.spec = next(spec for spec in canon.declared_figures("grid")
+                         if spec["view"] == "cdf" and spec["pcorr"] is False)
+
+    def rows(self, values):
+        return pd.DataFrame([
+            ("synthetic", model, goal, "seNorge", "forward", False, "bobyqa", seed, station,
+             "validation", metric, value, 10, "2001-01-01", "2001-01-10", variant)
+            for metric, goal, model, station, seed, value, variant in values
+        ], columns=[*table.COLUMNS, "variant"])
+
+    def test_bench_dashboard_cdf_uses_metric_goal_matched_cohorts_and_tie_ranks(self):
+        values = []
+        for model, station_values in (
+                ("ptgsk", {"a": 1, "b": 1, "c": 2, "d": 3, "e": 5}),
+                ("lstm", {"a": 0, "b": 1, "c": 2, "d": 3, "e": float("inf")})):
+            values.extend(("kge_gupta_2009", "kge", model, station, None, value, "base")
+                          for station, value in station_values.items())
+        values.extend([
+            ("kge_kling_2012", "kge", "ptgsk", "a", None, 0.1, "base"),
+            ("kge_kling_2012", "kge", "ptgsk", "b", None, 0.2, "base"),
+            ("kge_kling_2012", "kge", "lstm", "a", None, 0.3, "base"),
+            ("kge_kling_2012", "kge", "lstm", "b", None, float("nan"), "base"),
+            ("kge_kling_2012", "nse", "ptgsk", "x", None, 0.4, "base"),
+            ("kge_kling_2012", "nse", "ptgsk", "y", None, 0.5, "base"),
+            ("kge_kling_2012", "nse", "lstm", "y", None, 0.6, "base"),
+        ])
+        result = figures.cdf_table(self.rows(values), self.spec)
+        panel = result[(result["metric"] == "kge_gupta_2009") & (result["goal"] == "kge")]
+        self.assertEqual(set(panel["station"]), {"a", "b", "c", "d"})
+        ptgsk = panel[panel["model"] == "ptgsk"].set_index("station")
+        self.assertEqual(ptgsk.loc[["a", "b"], "cumulative_probability"].tolist(), [0.5, 0.5])
+        self.assertEqual(ptgsk.loc["d", "cumulative_probability"], 1.0)
+        self.assertFalse((panel["station"] == "e").any())
+
+        second_metric = result[result["metric"] == "kge_kling_2012"]
+        kge_panel = second_metric[second_metric["goal"] == "kge"]
+        self.assertEqual(set(kge_panel["station"]), {"a"})
+        nse_panel = second_metric[second_metric["goal"] == "nse"]
+        self.assertEqual(set(nse_panel["station"]), {"y"})
+
+    def test_bench_dashboard_cdf_preserves_seed_and_variant_observations(self):
+        values = [
+            ("kge_1_over_q", "kge", "ptgsk", "a", "seed-1", 0.2, "variant-1"),
+            ("kge_1_over_q", "kge", "ptgsk", "a", "seed-2", 0.4, "variant-2"),
+            ("kge_1_over_q", "kge", "lstm", "a", "seed-1", 0.3, "variant-1"),
+            ("kge_1_over_q", "kge", "lstm", "a", "seed-2", 0.5, "variant-2"),
+        ]
+        result = figures.cdf_table(self.rows(values), self.spec)
+        self.assertEqual(len(result), 4)
+        self.assertEqual(set(result["seed"]), {"seed-1", "seed-2"})
+        self.assertEqual(set(result["variant"]), {"variant-1", "variant-2"})
+        self.assertEqual(set(result["cumulative_probability"]), {0.5, 1.0})
+        self.assertTrue({"metric", "goal", "model", "station", "value",
+                         "variant", "seed", "cumulative_probability"}.issubset(result.columns))
+
+    def test_bench_dashboard_cdf_requires_finite_values_from_each_model(self):
+        values = [
+            ("kge_gupta_2009", "kge", "ptgsk", "a", None, 0.2, "base"),
+            ("kge_gupta_2009", "kge", "lstm", "a", None, float("nan"), "base"),
+        ]
+        result = figures.cdf_table(self.rows(values), self.spec)
+        self.assertTrue(result.empty)
+        with self.assertRaisesRegex(ValueError, "no matched finite metric rows"):
+            figures.render_cdf(result, self.spec)
+
+    def test_bench_dashboard_declared_cdf_svg_and_csv_are_deterministic(self):
+        values = [
+            (metric, goal, model, station, "seed-1", float(index), "variant-1")
+            for index, metric in enumerate(figures.CDF_METRICS)
+            for goal in ("kge", "nse")
+            for model in ("ptgsk", "lstm")
+            for station in ("a", "b")
+        ]
+        result = figures.cdf_table(self.rows(values), self.spec)
+        csv = figures.table_csv(result)
+        svg = figures.render_cdf(result, self.spec)
+        self.assertEqual(csv, figures.table_csv(result))
+        self.assertEqual(svg, figures.render_cdf(result, self.spec))
+        self.assertTrue(csv.startswith(b"experiment_id,"))
+        self.assertIn(b"cumulative_probability", csv)
+        self.assertIn(b"seed-1", csv)
+        self.assertIn(b"<svg", svg)
+
+
 class WriteOnceTest(unittest.TestCase):
     def test_bench_export_results_are_never_overwritten(self):
         with tempfile.TemporaryDirectory() as tmp:
