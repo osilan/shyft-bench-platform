@@ -46,7 +46,7 @@ requirement exportData where
     given "an export to publish"
     when "the export is published"
     then_ "its figure ids equal the ids in Figures.published, with none missing and none extra"
-    check deferred "the figure-set check runs in Python and is not backed by a Lean guard"
+    check deferred "the published-set check is not implemented yet (issue #31); Python validates only firstSlice or figureGrid"
 
 requirement dashboard where
   id "bench.dashboard"
