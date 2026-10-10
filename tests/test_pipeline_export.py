@@ -53,9 +53,20 @@ class CanonTest(unittest.TestCase):
 
 
 class BuildTest(unittest.TestCase):
-    def test_bench_dashboard_export_builds_scoreboards_for_legacy_ptgsk_only(self):
+    def test_bench_dashboard_export_builds_scoreboards_for_all_legacy_stacks(self):
         specs = canon.declared_figures("first-slice")
-        self.assertEqual(cli.SLICE_MODELS, ["ptgsk"])
+        models = cli.slice_models(specs[0])
+        catalogue = canon.load()["catalogue"]
+        expected_models = [
+            model["key"] for model in canon.load()["models"]
+            if any(experiment["provenance"] == "zenodo-import"
+                   and experiment["forcing"] == specs[0]["forcing"]
+                   and experiment["direction"] == specs[0]["direction"]
+                   and experiment["optimizer"] == specs[0]["optimizer"]
+                   and model["key"] in experiment["models"]
+                   for experiment in catalogue)
+        ]
+        self.assertEqual(models, expected_models)
         with tempfile.TemporaryDirectory() as tmp:
             dist = Path(tmp) / "dist"
             built_models, rendered_boards, manifest_artifacts = [], [], []
@@ -64,8 +75,8 @@ class BuildTest(unittest.TestCase):
                 built_models.append(model)
                 frame = long_table({"a": 0.1, "b": 0.3}, {"a": 0.2, "b": 0.4}, model)
                 sources = {
-                    (False, "kge"): importer.Source("ptgsk/off.csv", "ptgsk-off"),
-                    (True, "kge"): importer.Source("ptgsk/on.csv", "ptgsk-on"),
+                    (False, "kge"): importer.Source(f"{model}/off.csv", f"{model}-off"),
+                    (True, "kge"): importer.Source(f"{model}/on.csv", f"{model}-on"),
                 }
                 return frame, sources
 
@@ -81,18 +92,24 @@ class BuildTest(unittest.TestCase):
                   patch.object(cli.export, "check_dist", return_value=[]),
                   patch.object(cli, "INTERNAL", Path(tmp) / "internal")):
                 self.assertEqual(cli.build(dist), 0)
-            self.assertEqual(built_models, ["ptgsk"])
+            self.assertEqual(built_models, models)
             self.assertEqual(len(rendered_boards), 2)
             for board in rendered_boards:
-                self.assertEqual(set(board["model"]), {"ptgsk"})
+                self.assertEqual(set(board["model"]), set(models))
                 self.assertTrue({"median_nse", "median_kge_gupta_2009", "median_kge_kling_2012",
                                  "median_pbias", "median_kge_1_over_q"}.issubset(board.columns))
-            self.assertEqual(len(list((Path(tmp) / "internal").glob("*.parquet"))), 1)
-            expected_experiment = cli.experiment_for(specs[0], "ptgsk")["id"]
+            self.assertEqual(len(list((Path(tmp) / "internal").glob("*.parquet"))), len(models))
+            expected_experiments = {
+                cli.experiment_for(specs[0], model)["id"] for model in models
+            }
             self.assertEqual(len(manifest_artifacts), 4)
             for artifact in manifest_artifacts:
-                self.assertEqual(artifact["experiment_id"], expected_experiment)
-                self.assertEqual(len(artifact["sources"]), 2)
+                self.assertEqual(set(artifact["experiment_ids"]), expected_experiments)
+                self.assertEqual(
+                    {source["experiment_id"] for source in artifact["sources"]},
+                    expected_experiments,
+                )
+                self.assertEqual(len(artifact["sources"]), len(models) * 2)
             self.assertEqual((dist / "canon.json").read_bytes(), canon.CANON_PATH.read_bytes())
             self.assertEqual(json.loads((dist / "catalogue.json").read_text()),
                              canon.load()["catalogue"])
@@ -108,6 +125,21 @@ class ScoreboardTest(unittest.TestCase):
         self.assertEqual(off["n_matched"].tolist(), [3])
         self.assertAlmostEqual(off["median_kge_gupta_2009"].iloc[0], 0.3)  # d (0.9) is excluded
         self.assertAlmostEqual(on["median_kge_gupta_2009"].iloc[0], 0.4)
+
+    def test_bench_dashboard_scoreboard_matches_models_and_pcorr_arms(self):
+        ptgsk = long_table({"a": 0.1, "b": 0.2, "c": 0.3},
+                           {"a": 0.2, "b": 0.4, "c": 0.6}, "ptgsk")
+        ptstk = long_table({"b": 0.8, "c": 0.9, "d": 1.0},
+                           {"b": float("nan"), "c": 0.7, "d": 0.5}, "ptstk")
+        data = pd.concat([ptgsk, ptstk], ignore_index=True)
+
+        off = figures.scoreboard_table(data, False).set_index("model")
+        on = figures.scoreboard_table(data, True).set_index("model")
+
+        self.assertEqual(off["n_matched"].to_dict(), {"ptgsk": 1, "ptstk": 1})
+        self.assertEqual(on["n_matched"].to_dict(), {"ptgsk": 1, "ptstk": 1})
+        self.assertEqual(off["median_kge_gupta_2009"].to_dict(), {"ptgsk": 0.3, "ptstk": 0.9})
+        self.assertEqual(on["median_kge_gupta_2009"].to_dict(), {"ptgsk": 0.6, "ptstk": 0.7})
 
     def test_bench_dashboard_scoreboard_drops_stations_without_a_finite_value_in_either_arm(self):
         data = long_table({"a": 0.1, "b": 0.3, "c": float("nan")}, {"a": 0.2, "b": float("nan"),
@@ -389,7 +421,7 @@ class FirstSliceTest(unittest.TestCase):
             index = json.loads((Path(tmp) / "dist" / "figure-index.json").read_text())
             self.assertEqual([f["id"] for f in index["figures"]], canon.load()["firstSlice"])
             metrics_files = sorted((Path(tmp) / "metrics").glob("*.parquet"))
-            self.assertEqual(len(metrics_files), len(cli.SLICE_MODELS))
+            self.assertEqual(len(metrics_files), len(cli.slice_models(canon.declared_figures("first-slice")[0])))
             expected_metrics = {metric["key"] for metric in canon.load()["metrics"]}
             for path in metrics_files:
                 metrics = pd.read_parquet(path)

@@ -60,26 +60,27 @@ def goal_label(goal: str) -> str:
     return goal.upper().replace("_", "+")
 
 
-def matched_cohort(table: pd.DataFrame, model: str, goal: str) -> list[str]:
-    """Stations with a finite headline value in every pcorr arm."""
-    sub = table[(table["model"] == model) & (table["goal"] == goal)
+def matched_cohort(table: pd.DataFrame, models: list[str], goal: str) -> list[str]:
+    """Stations with finite headline values for every model and both pcorr arms."""
+    sub = table[table["model"].isin(models) & (table["goal"] == goal)
                 & (table["metric"] == HEADLINE) & (table["period_kind"] == PERIOD_KIND)]
     sub = sub[np.isfinite(sub["value"])]
-    arms = sorted(table["pcorr"].unique())
-    stations = None
-    for arm in arms:
-        found = set(sub.loc[sub["pcorr"] == arm, "station"])
-        stations = found if stations is None else stations & found
-    return sorted(stations or [])
+    required = {(model, pcorr) for model in models for pcorr in (False, True)}
+    return sorted(
+        station for station, rows in sub.groupby("station")
+        if required.issubset(set(zip(rows["model"], rows["pcorr"])))
+    )
 
 
 def scoreboard_table(table: pd.DataFrame, pcorr: bool) -> pd.DataFrame:
     """One row per (model, goal) for one pcorr arm, over the matched cohort."""
     keys = {k: f"median_{k}" for k in EFFICIENCY_KEYS}
     rows = []
-    for model in [m["key"] for m in canon.load()["models"] if m["key"] in set(table["model"])]:
+    models = [m["key"] for m in canon.load()["models"] if m["key"] in set(table["model"])]
+    cohorts = {goal: matched_cohort(table, models, goal) for goal in canon.load()["goals"]}
+    for model in models:
         for goal in canon.load()["goals"]:
-            cohort = matched_cohort(table, model, goal)
+            cohort = cohorts[goal]
             sub = table[(table["model"] == model) & (table["goal"] == goal)
                         & (table["pcorr"] == pcorr) & (table["period_kind"] == PERIOD_KIND)
                         & table["station"].isin(cohort)]
