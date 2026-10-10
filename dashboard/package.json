@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.json && cp index.html dist/index.html && cp site/style.css dist/style.css && cp -R ../tests/fixtures/dashboard-export/. dist/",
+    "build": "tsc -p tsconfig.json && cp index.html dist/index.html && cp site/style.css dist/style.css && cp -R dist-data/. dist/",
     "test": "tsc -p tsconfig.test.json && node --test tests/*.test.cjs"
   },
   "devDependencies": {

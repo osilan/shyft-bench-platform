@@ -57,6 +57,8 @@ function renderTable(csv: string): void {
 
 function render(figures: Figure[]): void {
   const currentRender = ++renderVersion;
+  elements.plot.hidden = true;
+  elements.table.hidden = true;
   let selection = selectionFromForm();
   for (const key of selectors) {
     const values = selectorOptions(figures, key, selection);
@@ -85,16 +87,27 @@ function render(figures: Figure[]): void {
     elements.error.textContent = "No figure is declared for this selection.";
     return;
   }
-
   elements.error.textContent = "";
-  elements.plot.src = new URL(chosen.svg, indexUrl).toString();
   fetch(new URL(chosen.csv, indexUrl))
     .then((response) => {
       if (!response.ok) throw new Error(`Could not load ${chosen.csv}`);
       return response.text();
     })
     .then((csv) => {
-      if (currentRender === renderVersion) renderTable(csv);
+      if (currentRender !== renderVersion) return;
+      const imageUrl = new URL(chosen.svg, indexUrl).toString();
+      elements.plot.addEventListener("load", () => {
+        if (currentRender !== renderVersion) return;
+        renderTable(csv);
+        elements.plot.hidden = false;
+        elements.table.hidden = false;
+      }, { once: true });
+      elements.plot.addEventListener("error", () => {
+        if (currentRender !== renderVersion) return;
+        elements.table.replaceChildren();
+        elements.error.textContent = `Could not load ${chosen.svg}`;
+      }, { once: true });
+      elements.plot.src = imageUrl;
     })
     .catch((error: Error) => {
       if (currentRender !== renderVersion) return;
