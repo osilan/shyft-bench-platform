@@ -76,6 +76,15 @@ def aggregateFigures : List FigureSpec :=
    fig .seedSpread s (some .reverse) (some false), fig .seedSpread s (some .reverse) (some true),
    fig .map s (some .forward) (some false), fig .map s (some .forward) (some true)]
 
+/-- The first published export: five forward legacy views, each with both pcorr settings. -/
+def published : List FigureSpec :=
+  let s := Forcing.seNorge2018
+  [fig .scoreboard s (some .forward) (some false), fig .scoreboard s (some .forward) (some true),
+   fig .cdf s (some .forward) (some false), fig .cdf s (some .forward) (some true),
+   fig .kgeCompass s (some .forward) (some false), fig .kgeCompass s (some .forward) (some true),
+   fig .lowFlow s (some .forward) (some false), fig .lowFlow s (some .forward) (some true),
+   fig .ruzzante s (some .forward) (some false), fig .ruzzante s (some .forward) (some true)]
+
 /-- Detail catchments are the 5 best and 5 worst by KGE (Gupta 2009, `Metric.kgeGupta`) for rpmstk with pcorr on (D-023). The
 stations come from computed metrics, so they are listed here once the metrics exist. -/
 def detailBest : Nat := 5
@@ -100,6 +109,10 @@ def gridMatches (declared published : List String) : Bool :=
 #guard detailFigures.length ≤ maxDetailFigures
 #guard (figureGrid.map FigureSpec.id).eraseDups.length == figureGrid.length
 #guard firstSlice.all aggregateFigures.contains
+#guard published.length == 10
+#guard published.all aggregateFigures.contains
+#guard firstSlice.all published.contains
+#guard (published.map FigureSpec.id).eraseDups.length == published.length
 #guard aggregateFigures.all fun f => f.view != .catchmentDetail && f.station.isNone
 #guard detailFigures.all fun f => f.view == .catchmentDetail && f.station.isSome
 #guard (figureGrid.filter (·.forcing == .aifs)).all fun f => f.view != .lstmVsShyft
