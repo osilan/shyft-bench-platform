@@ -42,6 +42,12 @@ requirement exportData where
     then_ "it contains figures, tables, index, canon, catalogue and manifest, and no daily discharge, SWE or snow-covered-area series"
     check deferred "the Python exporter limits published files, but its checks are not represented in Lean"
 
+  scenario "published set matches the declaration"
+    given "an export to publish"
+    when "the export is published"
+    then_ "its figure ids equal the ids in Figures.published, with none missing and none extra"
+    check deferred "the figure-set check runs in Python and is not backed by a Lean guard"
+
 requirement dashboard where
   id "bench.dashboard"
   shall "Present the results as final, paper-quality figures on a thin static site, like a paper or poster with selectors. Python draws every figure in advance as SVG, and the same files go into the paper. The selectors pick the matching figure, forcing first and then the variants (direction, precipitation correction, optimiser); seeds are not a selector, their spread is shown inside the figures. Each figure has its data table below it. Nothing is computed in the browser. seNorge2018 is the main experiment and the default; results are never compared across forcings. Show only matched comparisons, in the canonical model order and colours, and preserve seed spread without silently selecting a best seed. The figures cover the scoreboard (median over the matched cohort), cumulative distributions as small multiples by goal and metric (both KGE formulations, KGE(1/Q) and each Ruzzante decomposition metric, with model curves over a finite matched cohort per panel), per-catchment model comparisons, calibration-to-validation drop, precipitation-correction effects, both KGE formulations, Ruzzante decomposition, low-flow KGE(1/Q) and flow-duration curves, forward versus reverse, LSTM versus Shyft stacks, seed spread, maps and catchment hydrographs."
