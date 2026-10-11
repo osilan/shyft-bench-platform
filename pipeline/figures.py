@@ -223,6 +223,38 @@ def diagnostic_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
     missing = required - set(table.columns)
     if missing:
         raise ValueError(f"metric table is missing columns: {sorted(missing)}")
+    if view == "kge-compass":
+        metrics = list(DIAGNOSTIC_METRICS[view])
+        rows = table
+        for column in ("forcing", "direction", "pcorr", "optimizer"):
+            value = spec[column]
+            rows = rows[rows[column].isna()] if value is None else rows[rows[column] == value]
+        rows = rows[(rows["period_kind"] == PERIOD_KIND) & rows["metric"].isin(metrics)].copy()
+        rows["value"] = pd.to_numeric(rows["value"], errors="coerce")
+        rows = rows[rows["station"].notna()]
+        model_order = canonical_model_order()
+        cohorts = []
+        for goal in canon.load()["goals"]:
+            goal_rows = rows[rows["goal"] == goal]
+            models = [model for model in model_order if model in set(goal_rows["model"])]
+            if not models:
+                continue
+            cohort = matched_cohort(
+                rows, models, goal, metric=tuple(metrics), pcorrs=(spec["pcorr"],)
+            )
+            cohorts.append(goal_rows[goal_rows["station"].isin(cohort)])
+        matched = pd.concat(cohorts, ignore_index=True) if cohorts else rows.iloc[0:0]
+        result = percentile_table(matched, spec, metrics, list(summary_percents("box")))
+        goal_order = {goal: i for i, goal in enumerate(canon.load()["goals"])}
+        metric_order = {metric: i for i, metric in enumerate(canonical_metric_order(view))}
+        return result.assign(
+            _model_rank=result["model"].map(model_order),
+            _goal_rank=result["goal"].map(goal_order),
+            _metric_rank=result["metric"].map(metric_order),
+        ).sort_values(
+            ["_model_rank", "model", "_goal_rank", "_metric_rank", "seed"],
+            kind="stable", na_position="first", ignore_index=True,
+        ).drop(columns=["_model_rank", "_goal_rank", "_metric_rank"])
     rows = table
     for column in ("forcing", "direction", "pcorr", "optimizer"):
         value = spec[column]
@@ -265,6 +297,62 @@ def _save_diagnostic(fig) -> bytes:
     return buffer.getvalue()
 
 
+def _render_kge_compass(frame: pd.DataFrame, spec: dict) -> bytes:
+    goals = canon.load()["goals"]
+    model_order = canonical_model_order()
+    models = [model for model in model_order if model in set(frame["model"])]
+    colours = canon.model_colours()
+    columns = min(5, len(goals))
+    rows = (len(goals) + columns - 1) // columns
+    fig, axes = plt.subplots(
+        rows, columns, figsize=(2.0 * columns, 1.75 * rows), squeeze=False,
+        sharex=True, sharey=True,
+    )
+    metrics = canonical_metric_order("kge-compass")
+    for goal_index, goal in enumerate(goals):
+        ax = axes.flat[goal_index]
+        panel = frame[frame["goal"] == goal]
+        for model in models:
+            model_rows = panel[panel["model"] == model]
+            seeds = sorted(model_rows["seed"].dropna().unique(), key=str)
+            if model_rows["seed"].isna().any():
+                seeds = [None, *seeds]
+            for seed in seeds:
+                sample = (model_rows[model_rows["seed"].isna()] if seed is None
+                          else model_rows[model_rows["seed"] == seed])
+                values = sample.set_index("metric")
+                if not set(metrics).issubset(values.index):
+                    continue
+                x, y = metrics
+                ax.errorbar(
+                    values.loc[x, "p50"], values.loc[y, "p50"],
+                    xerr=[[values.loc[x, "p50"] - values.loc[x, "p25"]],
+                          [values.loc[x, "p75"] - values.loc[x, "p50"]]],
+                    yerr=[[values.loc[y, "p50"] - values.loc[y, "p25"]],
+                          [values.loc[y, "p75"] - values.loc[y, "p50"]]],
+                    fmt="o", color=colours[model], ecolor=colours[model], markersize=4,
+                    capsize=1.5, linewidth=0.8,
+                )
+        ax.set_title(goal_label(goal), fontsize=6)
+        ax.set_xlabel("KGE (Gupta et al., 2009)", fontsize=5.5)
+        ax.set_ylabel("KGE (Kling et al., 2012)", fontsize=5.5)
+        ax.tick_params(labelsize=5, length=2)
+        ax.grid(True)
+    for ax in axes.flat[len(goals):]:
+        ax.set_visible(False)
+    handles = [
+        plt.Line2D([], [], marker="o", linestyle="none", color=colours[model],
+                   markersize=4, label=model.upper())
+        for model in models
+    ]
+    fig.legend(
+        handles=handles, frameon=False, loc="upper center", ncols=max(len(models), 1),
+        fontsize=6,
+    )
+    fig.suptitle(_diagnostic_title(spec), fontsize=7.5)
+    return _save_diagnostic(fig)
+
+
 def render_diagnostic(frame: pd.DataFrame, spec: dict) -> bytes:
     """Render diagnostic samples, or low-flow percentile boxes with seeds kept separate."""
     view = spec["view"]
@@ -272,23 +360,13 @@ def render_diagnostic(frame: pd.DataFrame, spec: dict) -> bytes:
         raise ValueError(f"unsupported diagnostic view: {view}")
     if frame.empty:
         raise ValueError(f"{view} view has no metric rows")
+    if view == "kge-compass":
+        return _render_kge_compass(frame, spec)
 
     identity = _sample_columns(frame)
     fig, ax = plt.subplots(figsize=(max(7.2, min(18, len(frame) * 0.28)), 4.2))
     colors = canon.model_colours()
-    if view == "kge-compass":
-        metrics = list(canonical_metric_order(view))
-        wide = frame.pivot(index=identity, columns="metric", values="value")
-        points = wide.loc[:, metrics].dropna()
-        for row in points.reset_index().to_dict("records"):
-            model = row.get("model")
-            color = colors.get(model, "#000000")
-            x, y = row[metrics[0]], row[metrics[1]]
-            ax.scatter(x, y, color=color, s=22)
-            ax.annotate(_sample_label(pd.Series(row)), (x, y), fontsize=5, alpha=0.7)
-        ax.set_xlabel("KGE (Gupta et al., 2009)")
-        ax.set_ylabel("KGE (Kling et al., 2012)")
-    elif view == "low-flow":
+    if view == "low-flow":
         goals = canon.load()["goals"]
         models = [model for model in canonical_model_order() if model in set(frame["model"])]
         percent_columns = [f"p{percent:02d}" for percent in summary_percents("box")]

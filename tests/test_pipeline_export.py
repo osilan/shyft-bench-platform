@@ -227,6 +227,98 @@ class DiagnosticFigureTest(unittest.TestCase):
             for view in self.required_metrics
         }
 
+    def test_bench_kge_compass_table_uses_one_finite_cohort_for_both_metrics(self):
+        values = [
+            (f"synthetic-{model}-{goal}", model, goal, "seNorge", "forward", False,
+             "bobyqa", seed, station, "validation", metric, value, 10,
+             "2001-01-01", "2001-01-10")
+            for goal in ("kge",)
+            for seed, seed_offset in (("seed-1", 0), ("seed-2", 5000))
+            for model, model_offset in (("ptgsk", 0), ("ptstk", 100))
+            for metric, metric_offset in (("kge_gupta_2009", 0), ("kge_kling_2012", 1000))
+            for station, station_offset in zip("abcde", (0, 10, 20, 30, 40))
+            for value in (
+                float("nan") if (seed, model, metric, station) ==
+                ("seed-2", "ptstk", "kge_kling_2012", "c") else
+                model_offset + metric_offset + seed_offset + station_offset,
+            )
+        ]
+        raw = pd.DataFrame(values, columns=table.COLUMNS)
+        result = figures.diagnostic_table(raw, self.specs["kge-compass"])
+        self.assertEqual(result.columns.tolist(), [
+            "model", "goal", "metric", "seed", "n", "p05", "p25", "p50", "p75", "p95",
+        ])
+        self.assertNotIn("station", result.columns)
+        self.assertEqual(len(result), 2 * 2 * 2)
+        self.assertFalse(result.duplicated(["model", "goal", "metric", "seed"]).any())
+        self.assertEqual(set(result["n"]), {4})
+        expected = {
+            ("ptgsk", "kge_gupta_2009", "seed-1"): (7.5, 20, 32.5),
+            ("ptgsk", "kge_kling_2012", "seed-1"): (1007.5, 1020, 1032.5),
+            ("ptstk", "kge_gupta_2009", "seed-1"): (107.5, 120, 132.5),
+            ("ptstk", "kge_kling_2012", "seed-1"): (1107.5, 1120, 1132.5),
+        }
+        expected.update({
+            (model, metric, "seed-2"): tuple(value + 5000 for value in percentiles)
+            for (model, metric, _), percentiles in expected.copy().items()
+        })
+        for row in result.itertuples(index=False):
+            self.assertEqual(
+                (row.p25, row.p50, row.p75),
+                expected[(row.model, row.metric, row.seed)],
+            )
+        csv = figures.table_csv(result)
+        self.assertNotIn(b"station", csv.splitlines()[0])
+        self.assertIn(b"seed-2", csv)
+
+    def test_bench_kge_compass_renders_ordered_median_iqr_markers_within_svg_limit(self):
+        models = [model["key"] for model in canon.load()["models"][:5]]
+        goals = canon.load()["goals"]
+        values = [
+            (f"synthetic-{model}", model, goal, "seNorge", "forward", False, "bobyqa", None,
+             f"station-{station}", "validation", metric,
+             float(model_index + goal_index + station + (100 if metric == "kge_kling_2012" else 0)),
+             10, "2001-01-01", "2001-01-10")
+            for goal_index, goal in enumerate(goals)
+            for model_index, model in enumerate(models)
+            for metric in ("kge_gupta_2009", "kge_kling_2012")
+            for station in range(12)
+        ]
+        raw = pd.DataFrame(values, columns=table.COLUMNS)
+        result = figures.diagnostic_table(raw, self.specs["kge-compass"])
+        csv = figures.table_csv(result)
+        real_subplots = figures.plt.subplots
+        captured = {}
+
+        def capture_subplots(*args, **kwargs):
+            captured["fig_axes"] = real_subplots(*args, **kwargs)
+            return captured["fig_axes"]
+
+        with patch.object(figures.plt, "subplots", side_effect=capture_subplots):
+            svg = figures.render_diagnostic(result, self.specs["kge-compass"])
+        axes = captured["fig_axes"][1]
+        self.assertEqual(axes.shape, (2, 5))
+        first_panel = axes.flat[0]
+        self.assertEqual(len(first_panel.containers), len(models))
+        self.assertFalse(any(isinstance(collection, figures.plt.matplotlib.collections.PathCollection)
+                             for collection in first_panel.collections))
+        for model_index, (model, container) in enumerate(zip(models, first_panel.containers)):
+            line, _, barlinecols = container.lines
+            self.assertAlmostEqual(line.get_xdata()[0], model_index + 5.5)
+            self.assertAlmostEqual(line.get_ydata()[0], model_index + 105.5)
+            self.assertEqual(line.get_color(), canon.model_colours()[model])
+            x_segment = barlinecols[0].get_segments()[0][[0, -1], 0]
+            y_segment = barlinecols[1].get_segments()[0][[0, -1], 1]
+            np.testing.assert_allclose(x_segment, [model_index + 2.75, model_index + 8.25])
+            np.testing.assert_allclose(y_segment, [model_index + 102.75, model_index + 108.25])
+        self.assertEqual([ax.get_title() for ax in axes.flat],
+                         [figures.goal_label(goal) for goal in goals])
+        self.assertEqual(svg, figures.render_diagnostic(result, self.specs["kge-compass"]))
+        self.assertNotIn(b"station-", svg)
+        limits = canon.load()["sizeLimits"]
+        self.assertLessEqual(len(svg), limits["svgBytes"])
+        self.assertLessEqual(len(csv), limits["csvBytes"])
+
     def test_bench_low_flow_table_uses_box_percentiles_and_keeps_seed_cohorts(self):
         models = ["ptgsk", "ptstk"]
         values = []
@@ -319,14 +411,21 @@ class DiagnosticFigureTest(unittest.TestCase):
                 rows = figures.diagnostic_table(self.metrics, spec)
                 if view == "low-flow":
                     self.assertNotIn("metric", rows.columns)
+                elif view == "kge-compass":
+                    self.assertEqual(set(rows["metric"]), set(self.required_metrics[view]))
+                    self.assertNotIn("station", rows.columns)
+                    self.assertNotIn("forcing", rows.columns)
                 else:
                     self.assertEqual(set(rows["metric"]), set(self.required_metrics[view]))
-                self.assertEqual(len(rows), 12 * len(self.required_metrics[view]))
+                expected_rows = (2 * 2 * 3 * len(self.required_metrics[view])
+                                 if view == "kge-compass"
+                                 else 12 * len(self.required_metrics[view]))
+                self.assertEqual(len(rows), expected_rows)
                 self.assertEqual(set(rows["seed"].dropna()), {"seed-11", "seed-22"})
                 self.assertTrue(rows["seed"].isna().any())
                 self.assertEqual(set(rows["model"]), {"ptgsk", "lstm"})
                 self.assertEqual(set(rows["goal"]), {"kge", "nse"})
-                if view != "low-flow":
+                if view not in {"low-flow", "kge-compass"}:
                     for column in ("forcing", "direction", "pcorr", "optimizer"):
                         self.assertEqual(set(rows[column]), {spec[column]})
                     self.assertEqual(set(rows["forcing"]), {spec["forcing"]})
@@ -337,9 +436,14 @@ class DiagnosticFigureTest(unittest.TestCase):
                                      ["model", "goal", "seed", "n", "p05", "p25",
                                       "p50", "p75", "p95"])
                 else:
-                    self.assertTrue(set(self.required_metrics[view]).issubset(
-                        {line.split(",")[10] for line in csv.decode().splitlines()[1:]}))
-                    self.assertTrue(csv.startswith(b"experiment_id,"))
+                    if view == "kge-compass":
+                        self.assertEqual(csv.decode().splitlines()[0].split(","),
+                                         rows.columns.tolist())
+                        self.assertNotIn("station", rows.columns)
+                    else:
+                        self.assertTrue(set(self.required_metrics[view]).issubset(
+                            {line.split(",")[10] for line in csv.decode().splitlines()[1:]}))
+                        self.assertTrue(csv.startswith(b"experiment_id,"))
                 self.assertIn(b"seed-11", csv)
                 self.assertIn(b"seed-22", csv)
 
@@ -352,7 +456,7 @@ class DiagnosticFigureTest(unittest.TestCase):
                 self.assertEqual(first, figures.render_diagnostic(rows, spec))
                 self.assertIn(b"<svg", first)
                 svg = first.decode()
-                expected_model_labels = (("PTGSK", "LSTM") if view == "low-flow"
+                expected_model_labels = (("PTGSK", "LSTM") if view in {"low-flow", "kge-compass"}
                                          else ("ptgsk", "lstm"))
                 self.assertIn(expected_model_labels[0], svg)
                 self.assertIn(expected_model_labels[1], svg)
