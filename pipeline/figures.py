@@ -218,6 +218,21 @@ def diagnostic_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
             table, spec, list(DIAGNOSTIC_METRICS[view]), list(summary_percents("box"))
         )
         return summary.drop(columns="metric")
+    if view == "ruzzante":
+        summary = percentile_table(
+            table, spec, list(canonical_metric_order(view)), list(summary_percents("box"))
+        )
+        model_order = canonical_model_order()
+        goal_order = {goal: index for index, goal in enumerate(canon.load()["goals"])}
+        metric_order = {metric: index for index, metric in enumerate(canonical_metric_order(view))}
+        return summary.assign(
+            _model_rank=summary["model"].map(model_order),
+            _goal_rank=summary["goal"].map(goal_order),
+            _metric_rank=summary["metric"].map(metric_order),
+        ).sort_values(
+            ["_model_rank", "model", "_goal_rank", "_metric_rank", "seed"],
+            kind="stable", na_position="first", ignore_index=True,
+        ).drop(columns=["_model_rank", "_goal_rank", "_metric_rank"])
     required = {"model", "goal", "forcing", "direction", "pcorr", "optimizer", "seed",
                 "station", "metric", "value"}
     missing = required - set(table.columns)
@@ -359,6 +374,68 @@ def _render_kge_compass(frame: pd.DataFrame, spec: dict) -> bytes:
     return _save_diagnostic(fig)
 
 
+def _render_ruzzante(frame: pd.DataFrame, spec: dict) -> bytes:
+    goals = canon.load()["goals"]
+    metric_order = canonical_metric_order("ruzzante")
+    scales = ("seasonal", "interannual", "irregular")
+    scale_metrics = {
+        scale: [metric for metric in metric_order if metric.endswith(f"_{scale}")]
+        for scale in scales
+    }
+    model_order = canonical_model_order()
+    models = [model for model in model_order if model in set(frame["model"])]
+    colours = canon.model_colours()
+    width = 0.7 / max(len(models), 1)
+    fig, axes = plt.subplots(
+        len(scales), len(scale_metrics[scales[0]]),
+        figsize=(2.8 * len(scale_metrics[scales[0]]), 2.25 * len(scales)),
+        squeeze=False, sharex=True,
+    )
+    for row, scale in enumerate(scales):
+        for column, metric in enumerate(scale_metrics[scale]):
+            ax = axes[row, column]
+            panel = frame[frame["metric"] == metric]
+            cohort_sizes = sorted({int(value) for value in panel["n"]})
+            cohort_label = (str(cohort_sizes[0]) if len(cohort_sizes) == 1
+                            else f"{cohort_sizes[0]}–{cohort_sizes[-1]}")
+            label = metric.removesuffix(f"_{scale}").replace("_", " ")
+            ax.set_title(f"{label} {scale} (n = {cohort_label})", fontsize=6)
+            for model_index, model in enumerate(models):
+                model_rows = panel[panel["model"] == model]
+                # The table retains per-seed summaries; combine those summaries to keep one
+                # marker per model in this overview.
+                by_goal = model_rows.groupby("goal", sort=False)[["p25", "p50", "p75"]].median()
+                present = [goal for goal in goals if goal in by_goal.index]
+                x = np.asarray([goals.index(goal) for goal in present], dtype=float)
+                x += (model_index - (len(models) - 1) / 2) * width
+                values = by_goal.loc[present]
+                median = values["p50"].to_numpy(dtype=float)
+                ax.errorbar(
+                    x, median,
+                    yerr=np.vstack((median - values["p25"].to_numpy(dtype=float),
+                                    values["p75"].to_numpy(dtype=float) - median)),
+                    fmt="o", color=colours[model], ecolor=colours[model], markersize=3,
+                    capsize=1.2, linewidth=0.8,
+                )
+            ax.set_xticks(range(len(goals)), [goal_label(goal) for goal in goals],
+                          rotation=35, ha="right", fontsize=5)
+            ax.set_xlabel("Calibration goal function", fontsize=5.5)
+            ax.tick_params(axis="y", labelsize=5, length=2)
+            ax.grid(axis="x", visible=False)
+        axes[row, 0].set_ylabel(f"{scale.title()} value", fontsize=5.5)
+    handles = [
+        plt.Line2D([], [], marker="o", linestyle="none", color=colours[model],
+                   markersize=3, label=model.upper())
+        for model in models
+    ]
+    fig.legend(
+        handles=handles, frameon=False, loc="upper center", ncols=max(len(models), 1),
+        fontsize=6,
+    )
+    fig.suptitle(_diagnostic_title(spec), fontsize=7.5)
+    return _save_diagnostic(fig)
+
+
 def render_diagnostic(frame: pd.DataFrame, spec: dict) -> bytes:
     """Render diagnostic samples, or low-flow percentile boxes with seeds kept separate."""
     view = spec["view"]
@@ -368,6 +445,8 @@ def render_diagnostic(frame: pd.DataFrame, spec: dict) -> bytes:
         raise ValueError(f"{view} view has no metric rows")
     if view == "kge-compass":
         return _render_kge_compass(frame, spec)
+    if view == "ruzzante":
+        return _render_ruzzante(frame, spec)
 
     identity = _sample_columns(frame)
     fig, ax = plt.subplots(figsize=(max(7.2, min(18, len(frame) * 0.28)), 4.2))
