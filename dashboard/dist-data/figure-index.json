@@ -1,0 +1,104 @@
+{
+  "figures": [
+    {
+      "csv": "tables/scoreboard-seNorge-dir-forward-pcorr-off-bobyqa.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "scoreboard-seNorge-dir-forward-pcorr-off-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": false,
+      "svg": "figures/scoreboard-seNorge-dir-forward-pcorr-off-bobyqa.svg",
+      "view": "scoreboard"
+    },
+    {
+      "csv": "tables/scoreboard-seNorge-dir-forward-pcorr-on-bobyqa.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "scoreboard-seNorge-dir-forward-pcorr-on-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/scoreboard-seNorge-dir-forward-pcorr-on-bobyqa.svg",
+      "view": "scoreboard"
+    },
+    {
+      "csv": "tables/cdf-seNorge-dir-forward-pcorr-off-bobyqa.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "cdf-seNorge-dir-forward-pcorr-off-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": false,
+      "svg": "figures/cdf-seNorge-dir-forward-pcorr-off-bobyqa.svg",
+      "view": "cdf"
+    },
+    {
+      "csv": "tables/cdf-seNorge-dir-forward-pcorr-on-bobyqa.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "cdf-seNorge-dir-forward-pcorr-on-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/cdf-seNorge-dir-forward-pcorr-on-bobyqa.svg",
+      "view": "cdf"
+    },
+    {
+      "csv": "tables/kge-compass-seNorge-dir-forward-pcorr-off-bobyqa.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "kge-compass-seNorge-dir-forward-pcorr-off-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": false,
+      "svg": "figures/kge-compass-seNorge-dir-forward-pcorr-off-bobyqa.svg",
+      "view": "kge-compass"
+    },
+    {
+      "csv": "tables/kge-compass-seNorge-dir-forward-pcorr-on-bobyqa.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "kge-compass-seNorge-dir-forward-pcorr-on-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/kge-compass-seNorge-dir-forward-pcorr-on-bobyqa.svg",
+      "view": "kge-compass"
+    },
+    {
+      "csv": "tables/low-flow-seNorge-dir-forward-pcorr-off-bobyqa.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "low-flow-seNorge-dir-forward-pcorr-off-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": false,
+      "svg": "figures/low-flow-seNorge-dir-forward-pcorr-off-bobyqa.svg",
+      "view": "low-flow"
+    },
+    {
+      "csv": "tables/low-flow-seNorge-dir-forward-pcorr-on-bobyqa.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "low-flow-seNorge-dir-forward-pcorr-on-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/low-flow-seNorge-dir-forward-pcorr-on-bobyqa.svg",
+      "view": "low-flow"
+    },
+    {
+      "csv": "tables/ruzzante-seNorge-dir-forward-pcorr-off-bobyqa.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "ruzzante-seNorge-dir-forward-pcorr-off-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": false,
+      "svg": "figures/ruzzante-seNorge-dir-forward-pcorr-off-bobyqa.svg",
+      "view": "ruzzante"
+    },
+    {
+      "csv": "tables/ruzzante-seNorge-dir-forward-pcorr-on-bobyqa.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "ruzzante-seNorge-dir-forward-pcorr-on-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/ruzzante-seNorge-dir-forward-pcorr-on-bobyqa.svg",
+      "view": "ruzzante"
+    }
+  ]
+}

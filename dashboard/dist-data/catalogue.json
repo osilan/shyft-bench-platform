@@ -1,0 +1,354 @@
+[
+  {
+    "calibration": {
+      "days": 7793,
+      "endDay": 11323,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "direction": "forward",
+    "forcing": "seNorge",
+    "goals": [
+      "kge",
+      "lkge",
+      "bckge",
+      "kge_lkge",
+      "kge_bckge",
+      "nse",
+      "lnse",
+      "bcnse",
+      "nse_lnse",
+      "nse_bcnse"
+    ],
+    "id": "legacy-ptgsk-senorge",
+    "models": [
+      "ptgsk"
+    ],
+    "optimizer": "bobyqa",
+    "pcorr": [
+      false,
+      true
+    ],
+    "provenance": "zenodo-import",
+    "simulation": {
+      "days": 15098,
+      "endDay": 18628,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "validation": [
+      {
+        "endDay": 18628,
+        "startDay": 11323
+      }
+    ]
+  },
+  {
+    "calibration": {
+      "days": 7793,
+      "endDay": 11323,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "direction": "forward",
+    "forcing": "seNorge",
+    "goals": [
+      "kge",
+      "lkge",
+      "bckge",
+      "kge_lkge",
+      "kge_bckge",
+      "nse",
+      "lnse",
+      "bcnse",
+      "nse_lnse",
+      "nse_bcnse"
+    ],
+    "id": "legacy-ptstk-senorge",
+    "models": [
+      "ptstk"
+    ],
+    "optimizer": "bobyqa",
+    "pcorr": [
+      false,
+      true
+    ],
+    "provenance": "zenodo-import",
+    "simulation": {
+      "days": 15098,
+      "endDay": 18628,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "validation": [
+      {
+        "endDay": 18628,
+        "startDay": 11323
+      }
+    ]
+  },
+  {
+    "calibration": {
+      "days": 7793,
+      "endDay": 11323,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "direction": "forward",
+    "forcing": "seNorge",
+    "goals": [
+      "kge",
+      "lkge",
+      "bckge",
+      "kge_lkge",
+      "kge_bckge",
+      "nse",
+      "lnse",
+      "bcnse",
+      "nse_lnse",
+      "nse_bcnse"
+    ],
+    "id": "legacy-ptsthbv-senorge",
+    "models": [
+      "ptsthbv"
+    ],
+    "optimizer": "bobyqa",
+    "pcorr": [
+      false,
+      true
+    ],
+    "provenance": "zenodo-import",
+    "simulation": {
+      "days": 15098,
+      "endDay": 18628,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "validation": [
+      {
+        "endDay": 18628,
+        "startDay": 11323
+      }
+    ]
+  },
+  {
+    "calibration": {
+      "days": 7793,
+      "endDay": 11323,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "direction": "forward",
+    "forcing": "seNorge",
+    "goals": [
+      "kge",
+      "lkge",
+      "bckge",
+      "kge_lkge",
+      "kge_bckge",
+      "nse",
+      "lnse",
+      "bcnse",
+      "nse_lnse",
+      "nse_bcnse"
+    ],
+    "id": "legacy-rpmgsk-senorge",
+    "models": [
+      "rpmgsk"
+    ],
+    "optimizer": "bobyqa",
+    "pcorr": [
+      false,
+      true
+    ],
+    "provenance": "zenodo-import",
+    "simulation": {
+      "days": 15098,
+      "endDay": 18628,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "validation": [
+      {
+        "endDay": 18628,
+        "startDay": 11323
+      }
+    ]
+  },
+  {
+    "calibration": {
+      "days": 7793,
+      "endDay": 11323,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "direction": "forward",
+    "forcing": "seNorge",
+    "goals": [
+      "kge",
+      "lkge",
+      "bckge",
+      "kge_lkge",
+      "kge_bckge",
+      "nse",
+      "lnse",
+      "bcnse",
+      "nse_lnse",
+      "nse_bcnse"
+    ],
+    "id": "legacy-rpmstk-senorge",
+    "models": [
+      "rpmstk"
+    ],
+    "optimizer": "bobyqa",
+    "pcorr": [
+      false,
+      true
+    ],
+    "provenance": "zenodo-import",
+    "simulation": {
+      "days": 15098,
+      "endDay": 18628,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "validation": [
+      {
+        "endDay": 18628,
+        "startDay": 11323
+      }
+    ]
+  },
+  {
+    "calibration": {
+      "days": 7792,
+      "endDay": 18627,
+      "start": "1999-09-01",
+      "startDay": 10835
+    },
+    "direction": "reverse",
+    "forcing": "seNorge",
+    "goals": [
+      "kge",
+      "lkge",
+      "bckge",
+      "kge_lkge",
+      "kge_bckge",
+      "nse",
+      "lnse",
+      "bcnse",
+      "nse_lnse",
+      "nse_bcnse"
+    ],
+    "id": "legacy-rpmstk-reverse",
+    "models": [
+      "rpmstk"
+    ],
+    "optimizer": "bobyqa",
+    "pcorr": [
+      false,
+      true
+    ],
+    "provenance": "dtss-collect",
+    "simulation": {
+      "days": 15098,
+      "endDay": 18628,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "validation": [
+      {
+        "endDay": 10835,
+        "startDay": 3530
+      }
+    ]
+  },
+  {
+    "calibration": {
+      "days": 7793,
+      "endDay": 11323,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "direction": "forward",
+    "forcing": "seNorge",
+    "goals": [
+      "kge",
+      "lkge",
+      "bckge",
+      "kge_lkge",
+      "kge_bckge",
+      "nse",
+      "lnse",
+      "bcnse",
+      "nse_lnse",
+      "nse_bcnse"
+    ],
+    "id": "rpmfsm2k-senorge-snow",
+    "models": [
+      "rpmfsm2k"
+    ],
+    "optimizer": "bobyqa",
+    "pcorr": [
+      false,
+      true
+    ],
+    "provenance": "future",
+    "simulation": {
+      "days": 15098,
+      "endDay": 18628,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "validation": [
+      {
+        "endDay": 18628,
+        "startDay": 11323
+      }
+    ]
+  },
+  {
+    "calibration": {
+      "days": 7793,
+      "endDay": 11323,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "direction": "forward",
+    "forcing": "seNorge",
+    "goals": [
+      "kge",
+      "lkge",
+      "bckge",
+      "kge_lkge",
+      "kge_bckge",
+      "nse",
+      "lnse",
+      "bcnse",
+      "nse_lnse",
+      "nse_bcnse"
+    ],
+    "id": "ptfsm2k-senorge-snow",
+    "models": [
+      "ptfsm2k"
+    ],
+    "optimizer": "bobyqa",
+    "pcorr": [
+      false,
+      true
+    ],
+    "provenance": "planned",
+    "simulation": {
+      "days": 15098,
+      "endDay": 18628,
+      "start": "1979-09-01",
+      "startDay": 3530
+    },
+    "validation": [
+      {
+        "endDay": 18628,
+        "startDay": 11323
+      }
+    ]
+  }
+]
