@@ -227,25 +227,121 @@ class DiagnosticFigureTest(unittest.TestCase):
             for view in self.required_metrics
         }
 
+    def test_bench_low_flow_table_uses_box_percentiles_and_keeps_seed_cohorts(self):
+        models = ["ptgsk", "ptstk"]
+        values = []
+        for model in reversed(models):
+            for seed, shift in (("seed-1", 0), ("seed-2", 100)):
+                for station, value in zip("abcde", (0, 10, 20, 30, 40)):
+                    values.append((
+                        f"{model}-{seed}", model, "kge", "seNorge", "forward", False,
+                        "bobyqa", seed, station, "validation", "kge_1_over_q",
+                        value + shift, 10, "2001-01-01", "2001-01-10",
+                    ))
+        data = pd.DataFrame(values, columns=table.COLUMNS)
+        result = figures.diagnostic_table(data, self.specs["low-flow"])
+        self.assertEqual(result.columns.tolist(), [
+            "model", "goal", "seed", "n", "p05", "p25", "p50", "p75", "p95",
+        ])
+        self.assertEqual(len(result), len(models) * 2)
+        self.assertFalse(result.duplicated(["model", "goal", "seed"]).any())
+        self.assertEqual(result["n"].tolist(), [5] * 4)
+        self.assertEqual(result["model"].tolist(), ["ptstk", "ptstk", "ptgsk", "ptgsk"])
+        ptstk = result[result["model"] == "ptstk"].set_index("seed")
+        self.assertEqual(ptstk.loc["seed-1", ["p05", "p25", "p50", "p75", "p95"]].tolist(),
+                         [2, 10, 20, 30, 38])
+        self.assertEqual(ptstk.loc["seed-2", "p50"], 120)
+        csv = figures.table_csv(result)
+        self.assertNotIn(b"station", csv.splitlines()[0])
+        self.assertIn(b",5,", csv)
+
+    def test_bench_low_flow_boxes_use_canonical_order_colours_and_no_raw_points(self):
+        models = [model["key"] for model in canon.load()["models"][:5]]
+        goals = canon.load()["goals"]
+        rows = pd.DataFrame([
+            (model, goal, "kge_1_over_q", None, 12, 2, 10, 20, 30, 38)
+            for goal in goals for model in reversed(models)
+        ], columns=["model", "goal", "metric", "seed", "n",
+                    "p05", "p25", "p50", "p75", "p95"])
+        real_subplots = figures.plt.subplots
+        captured = {}
+
+        def capture_subplots(*args, **kwargs):
+            captured["fig_axes"] = real_subplots(*args, **kwargs)
+            return captured["fig_axes"]
+
+        with patch.object(figures.plt, "subplots", side_effect=capture_subplots):
+            svg = figures.render_diagnostic(rows, self.specs["low-flow"])
+        ax = captured["fig_axes"][1]
+        boxes = [patch for patch in ax.patches if isinstance(patch, figures.plt.Rectangle)
+                 and patch is not ax.patch]
+        self.assertEqual(len(boxes), len(models) * len(goals))
+        model_boxes = boxes[::len(goals)]
+        self.assertEqual([box.get_edgecolor()[:3] for box in model_boxes],
+                         [tuple(int(colour[i:i + 2], 16) / 255 for i in (1, 3, 5))
+                          for colour in [canon.model_colours()[model] for model in models]])
+        goal_zero_centers = [box.get_x() + box.get_width() / 2 for box in boxes[:len(models)]]
+        self.assertEqual(goal_zero_centers, sorted(goal_zero_centers))
+        for box in boxes:
+            self.assertAlmostEqual(box.get_y(), 10)
+            self.assertAlmostEqual(box.get_height(), 20)
+        self.assertFalse(any(isinstance(collection, figures.plt.matplotlib.collections.PathCollection)
+                             for collection in ax.collections))
+        self.assertEqual([tick.get_text() for tick in ax.get_xticklabels()],
+                         [figures.goal_label(goal) for goal in goals])
+        self.assertIn("cohort n = 12 catchments", ax.get_title(loc="left"))
+        self.assertNotIn("station", svg.decode().lower())
+        self.assertEqual(svg, figures.render_diagnostic(rows, self.specs["low-flow"]))
+
+    def test_bench_low_flow_full_grid_svg_fits_lean_size_limit(self):
+        models = [model["key"] for model in canon.load()["models"][:5]]
+        goals = canon.load()["goals"]
+        values = [
+            (f"synthetic-{model}", model, goal, "seNorge", "forward", False, "bobyqa", None,
+             f"station-{station}", "validation", "kge_1_over_q", float(model_index + goal_index
+             + station), 10, "2001-01-01", "2001-01-10")
+            for goal_index, goal in enumerate(goals)
+            for model_index, model in enumerate(models)
+            for station in range(12)
+        ]
+        raw = pd.DataFrame(values, columns=table.COLUMNS)
+        result = figures.diagnostic_table(raw, self.specs["low-flow"])
+        csv = figures.table_csv(result)
+        svg = figures.render_diagnostic(result, self.specs["low-flow"])
+        limits = canon.load()["sizeLimits"]
+        self.assertEqual(len(result), 5 * 10)
+        self.assertLessEqual(len(svg), limits["svgBytes"])
+        self.assertLessEqual(len(csv), limits["csvBytes"])
+
     def test_bench_dashboard_diagnostic_views_keep_metric_variant_and_seed_rows(self):
         for view, spec in self.specs.items():
             with self.subTest(view=view):
                 rows = figures.diagnostic_table(self.metrics, spec)
-                self.assertEqual(set(rows["metric"]), set(self.required_metrics[view]))
+                if view == "low-flow":
+                    self.assertNotIn("metric", rows.columns)
+                else:
+                    self.assertEqual(set(rows["metric"]), set(self.required_metrics[view]))
                 self.assertEqual(len(rows), 12 * len(self.required_metrics[view]))
                 self.assertEqual(set(rows["seed"].dropna()), {"seed-11", "seed-22"})
                 self.assertTrue(rows["seed"].isna().any())
                 self.assertEqual(set(rows["model"]), {"ptgsk", "lstm"})
                 self.assertEqual(set(rows["goal"]), {"kge", "nse"})
-                for column in ("forcing", "direction", "pcorr", "optimizer"):
-                    self.assertEqual(set(rows[column]), {spec[column]})
-                self.assertEqual(set(rows["forcing"]), {spec["forcing"]})
+                if view != "low-flow":
+                    for column in ("forcing", "direction", "pcorr", "optimizer"):
+                        self.assertEqual(set(rows[column]), {spec[column]})
+                    self.assertEqual(set(rows["forcing"]), {spec["forcing"]})
                 csv = figures.table_csv(rows)
-                self.assertTrue(set(self.required_metrics[view]).issubset(
-                    {line.split(",")[10] for line in csv.decode().splitlines()[1:]}))
+                if view == "low-flow":
+                    self.assertNotIn("station", rows.columns)
+                    self.assertEqual(csv.splitlines()[0].decode().split(","),
+                                     ["model", "goal", "seed", "n", "p05", "p25",
+                                      "p50", "p75", "p95"])
+                else:
+                    self.assertTrue(set(self.required_metrics[view]).issubset(
+                        {line.split(",")[10] for line in csv.decode().splitlines()[1:]}))
+                    self.assertTrue(csv.startswith(b"experiment_id,"))
                 self.assertIn(b"seed-11", csv)
                 self.assertIn(b"seed-22", csv)
-                self.assertTrue(csv.startswith(b"experiment_id,"))
 
     def test_bench_dashboard_diagnostic_svg_and_csv_rendering_is_deterministic(self):
         for view, spec in self.specs.items():
@@ -256,8 +352,10 @@ class DiagnosticFigureTest(unittest.TestCase):
                 self.assertEqual(first, figures.render_diagnostic(rows, spec))
                 self.assertIn(b"<svg", first)
                 svg = first.decode()
-                self.assertIn("ptgsk", svg)
-                self.assertIn("lstm", svg)
+                expected_model_labels = (("PTGSK", "LSTM") if view == "low-flow"
+                                         else ("ptgsk", "lstm"))
+                self.assertIn(expected_model_labels[0], svg)
+                self.assertIn(expected_model_labels[1], svg)
                 labels = {
                     "kge-compass": ["KGE (Gupta et al., 2009)", "KGE (Kling et al., 2012)"],
                     "low-flow": ["KGE(1/Q)"],

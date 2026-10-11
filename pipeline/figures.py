@@ -213,6 +213,11 @@ def diagnostic_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
     view = spec["view"]
     if view not in DIAGNOSTIC_METRICS:
         raise ValueError(f"unsupported diagnostic view: {view}")
+    if view == "low-flow":
+        summary = percentile_table(
+            table, spec, list(DIAGNOSTIC_METRICS[view]), list(summary_percents("box"))
+        )
+        return summary.drop(columns="metric")
     required = {"model", "goal", "forcing", "direction", "pcorr", "optimizer", "seed",
                 "station", "metric", "value"}
     missing = required - set(table.columns)
@@ -261,7 +266,7 @@ def _save_diagnostic(fig) -> bytes:
 
 
 def render_diagnostic(frame: pd.DataFrame, spec: dict) -> bytes:
-    """Render a diagnostic view, keeping individual stations, goals and seeds visible."""
+    """Render diagnostic samples, or low-flow percentile boxes with seeds kept separate."""
     view = spec["view"]
     if view not in DIAGNOSTIC_METRICS:
         raise ValueError(f"unsupported diagnostic view: {view}")
@@ -284,13 +289,50 @@ def render_diagnostic(frame: pd.DataFrame, spec: dict) -> bytes:
         ax.set_xlabel("KGE (Gupta et al., 2009)")
         ax.set_ylabel("KGE (Kling et al., 2012)")
     elif view == "low-flow":
-        labels = [_sample_label(row) for _, row in frame.iterrows()]
-        for index, row in frame.iterrows():
-            color = colors.get(row["model"], "#000000")
-            ax.scatter(index, row["value"], color=color, s=22)
-        ax.set_xticks(range(len(frame)), labels, rotation=90, ha="center", fontsize=6)
+        goals = canon.load()["goals"]
+        models = [model for model in canonical_model_order() if model in set(frame["model"])]
+        percent_columns = [f"p{percent:02d}" for percent in summary_percents("box")]
+        by_cell = frame.groupby(["model", "goal"], sort=False, dropna=False)
+        box_width = 0.7 / max(len(models), 1)
+        for model_index, model in enumerate(models):
+            for goal_index, goal in enumerate(goals):
+                rows = by_cell.get_group((model, goal)) if (model, goal) in by_cell.groups else None
+                if rows is None:
+                    continue
+                # Keep separate seed summaries side by side rather than pooling their data.
+                rows = rows.assign(
+                    _seed_order=rows["seed"].map(
+                        lambda seed: "" if pd.isna(seed) else str(seed)
+                    )
+                ).sort_values("_seed_order", kind="stable")
+                seed_width = box_width / len(rows)
+                center = goal_index + (model_index - (len(models) - 1) / 2) * box_width
+                for seed_index, (_, row) in enumerate(rows.iterrows()):
+                    position = center + (seed_index - (len(rows) - 1) / 2) * seed_width
+                    p05, p25, p50, p75, p95 = row[percent_columns].to_numpy(dtype=float)
+                    color = colors.get(model, "#000000")
+                    ax.vlines(position, p05, p95, color=color, linewidth=1)
+                    cap = seed_width * 0.55
+                    ax.hlines((p05, p95), position - cap / 2, position + cap / 2,
+                              color=color, linewidth=1)
+                    ax.add_patch(plt.Rectangle(
+                        (position - seed_width * 0.35, p25), seed_width * 0.7, p75 - p25,
+                        facecolor=color, edgecolor=color, alpha=0.65, linewidth=0.7,
+                    ))
+                    ax.hlines(p50, position - seed_width * 0.35, position + seed_width * 0.35,
+                              color="black", linewidth=1)
+        cohort = int(frame["n"].min()), int(frame["n"].max())
+        cohort_label = (str(cohort[0]) if cohort[0] == cohort[1]
+                        else f"{cohort[0]}-{cohort[1]}")
+        ax.set_xticks(range(len(goals)), [goal_label(goal) for goal in goals],
+                      rotation=30, ha="right")
         ax.set_ylabel("KGE(1/Q)")
-        ax.set_xlabel("Model / goal / station / seed")
+        ax.set_xlabel("Calibration goal function")
+        ax.legend(
+            handles=[plt.Line2D([0], [0], color=colors[model], linewidth=3,
+                                label=model.upper()) for model in models],
+            frameon=False, title="Model", loc="lower left", ncols=max(len(models), 1),
+        )
     else:
         metrics = list(canonical_metric_order(view))
         positions = np.arange(len(metrics))
@@ -307,6 +349,9 @@ def render_diagnostic(frame: pd.DataFrame, spec: dict) -> bytes:
         ax.set_ylabel("Characterized metric value")
         ax.set_xlabel("Ruzzante component")
         ax.legend(frameon=False, fontsize=5, title="Model / goal / station / seed")
-    ax.set_title(_diagnostic_title(spec), fontsize=7.5, loc="left")
+    title = _diagnostic_title(spec)
+    if view == "low-flow":
+        title += f"; cohort n = {cohort_label} catchments"
+    ax.set_title(title, fontsize=7.5, loc="left")
     ax.grid(axis="x", visible=False)
     return _save_diagnostic(fig)
