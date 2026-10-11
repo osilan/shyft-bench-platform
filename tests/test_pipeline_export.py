@@ -85,6 +85,7 @@ class BuildTest(unittest.TestCase):
                 return {"artifacts": artifacts}
 
             with (patch.object(cli.table, "build", side_effect=build_table),
+                patch.object(cli.canon, "declared_figures", return_value=specs),
                   patch.object(cli, "parquet_bytes", return_value=b"parquet"),
                   patch.object(cli.figures, "render_scoreboard",
                                side_effect=lambda board: rendered_boards.append(board) or b"<svg/>"),
@@ -115,6 +116,42 @@ class BuildTest(unittest.TestCase):
                              canon.load()["catalogue"])
             manifest = json.loads((dist / "manifest.json").read_text())
             self.assertEqual(manifest["artifacts"], manifest_artifacts)
+
+    def test_bench_export_builds_all_published_figures_from_lean_ids(self):
+        specs = canon.declared_figures("published")
+        expected = canon.load()["published"]
+        self.assertEqual(len(expected), 10)
+        self.assertEqual([spec["id"] for spec in specs], expected)
+        with tempfile.TemporaryDirectory() as tmp:
+            dist = Path(tmp) / "dist"
+            rendered = []
+            def build_table(experiment_id, model, optimizer):
+                return long_table({"a": 0.1, "b": 0.3}, {"a": 0.2, "b": 0.4}, model), {}
+
+            with (patch.object(cli.table, "build", side_effect=build_table),
+                  patch.object(cli, "parquet_bytes", return_value=b"parquet"),
+                  patch.object(cli.figures, "render_scoreboard",
+                               side_effect=lambda frame: rendered.append("scoreboard") or b"<svg/>"),
+                  patch.object(cli.figures, "cdf_table", side_effect=lambda data, spec: data),
+                  patch.object(cli.figures, "render_cdf",
+                               side_effect=lambda frame, spec: rendered.append("cdf") or b"<svg/>"),
+                  patch.object(cli.figures, "diagnostic_table", side_effect=lambda data, spec: data),
+                  patch.object(cli.figures, "render_diagnostic",
+                               side_effect=lambda frame, spec: rendered.append(spec["view"]) or b"<svg/>"),
+                  patch.object(cli.export, "manifest", side_effect=lambda artifacts: {"artifacts": artifacts}),
+                  patch.object(cli, "INTERNAL", Path(tmp) / "internal")):
+                self.assertEqual(cli.build(dist), 0)
+            index = json.loads((dist / "figure-index.json").read_text())["figures"]
+            self.assertEqual([entry["id"] for entry in index], expected)
+            self.assertEqual(len(rendered), len(specs))
+            self.assertEqual(rendered.count("scoreboard"), 2)
+            self.assertEqual(rendered.count("cdf"), 2)
+            self.assertEqual(rendered.count("kge-compass"), 2)
+            self.assertEqual(rendered.count("low-flow"), 2)
+            self.assertEqual(rendered.count("ruzzante"), 2)
+            self.assertEqual(len(list((dist / "figures").glob("*.svg"))), len(specs))
+            self.assertEqual(len(list((dist / "tables").glob("*.csv"))), len(specs))
+            self.assertEqual(export.check_dist(dist, "published"), [])
 
 
 class ScoreboardTest(unittest.TestCase):
@@ -365,6 +402,32 @@ class GridCheckTest(unittest.TestCase):
             self.fake_dist(Path(tmp), self.first_slice_ids())
             self.assertEqual(export.check_dist(Path(tmp), "first-slice"), [])
 
+    def test_bench_export_published_set_matches_the_declaration(self):
+        published = canon.load()["published"]
+        with tempfile.TemporaryDirectory() as tmp:
+            self.fake_dist(Path(tmp), published)
+            self.assertEqual(export.check_dist(Path(tmp), "published"), [])
+
+    def test_bench_export_published_set_missing_a_figure_fails(self):
+        published = canon.load()["published"]
+        with tempfile.TemporaryDirectory() as tmp:
+            self.fake_dist(Path(tmp), published[:-1])
+            problems = export.check_dist(Path(tmp), "published")
+            self.assertTrue(any(f"declared figure missing: {published[-1]}" in p for p in problems))
+
+    def test_bench_export_published_set_with_an_extra_figure_fails(self):
+        extra = next(f["id"] for f in canon.declared_figures("grid")
+                     if f["id"] not in canon.load()["published"])
+        with tempfile.TemporaryDirectory() as tmp:
+            self.fake_dist(Path(tmp), canon.load()["published"] + [extra])
+            problems = export.check_dist(Path(tmp), "published")
+            self.assertTrue(any(f"undeclared figure published: {extra}" in p for p in problems))
+
+    def test_bench_export_the_first_slice_alone_is_not_the_published_set(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.fake_dist(Path(tmp), self.first_slice_ids())
+            self.assertTrue(export.check_dist(Path(tmp), "published"))
+
     def test_bench_export_requires_canon_and_catalogue(self):
         with tempfile.TemporaryDirectory() as tmp:
             dist = Path(tmp)
@@ -416,7 +479,7 @@ class GridCheckTest(unittest.TestCase):
                      importer.legacy_output_dir().is_dir(),
                      "set SHYFT_BENCH_SLOW=1 with the legacy results available")
 class FirstSliceTest(unittest.TestCase):
-    def test_bench_export_first_slice_builds_and_matches_the_declared_ids(self):
+    def test_bench_export_published_figures_build_and_match_declared_ids(self):
         with tempfile.TemporaryDirectory() as tmp:
             old = cli.INTERNAL
             cli.INTERNAL = Path(tmp) / "metrics"
@@ -425,7 +488,8 @@ class FirstSliceTest(unittest.TestCase):
             finally:
                 cli.INTERNAL = old
             index = json.loads((Path(tmp) / "dist" / "figure-index.json").read_text())
-            self.assertEqual([f["id"] for f in index["figures"]], canon.load()["firstSlice"])
+            self.assertEqual([f["id"] for f in index["figures"]],
+                             canon.load()["published"])
             metrics_files = sorted((Path(tmp) / "metrics").glob("*.parquet"))
             self.assertEqual(len(metrics_files), len(cli.slice_models(canon.declared_figures("first-slice")[0])))
             expected_metrics = {metric["key"] for metric in canon.load()["metrics"]}

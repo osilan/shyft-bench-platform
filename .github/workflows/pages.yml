@@ -46,7 +46,7 @@ jobs:
         id: validate-export
         if: hashFiles('dashboard/dist-data/figure-index.json') != ''
         continue-on-error: true
-        run: python -m pipeline check --scope first-slice
+        run: python -m pipeline check --scope published
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         if: hashFiles('dashboard/package-lock.json') != ''

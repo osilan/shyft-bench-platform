@@ -89,7 +89,7 @@ def check_grid(published: list[str], declared: list[str]) -> list[str]:
 
 
 def check_dist(dist: Path, scope: str) -> list[str]:
-    """The published directory equals the declared grid (`first-slice` or `grid`), and every
+    """The published directory equals the declared set (`first-slice`, `published` or `grid`), and every
     listed file exists and matches its manifest checksum."""
     index_path, manifest_path = dist / "figure-index.json", dist / "manifest.json"
     problems = [f"{name} is missing" for name in ("canon.json", "catalogue.json")
