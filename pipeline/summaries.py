@@ -19,14 +19,24 @@ def summary_percents(kind: str) -> tuple[int, ...]:
 def matched_cohort(table: pd.DataFrame, models: list[str], goal: str,
                    metric: str = HEADLINE,
                    pcorrs: tuple[bool, ...] = (False, True)) -> list[str]:
-    """Stations with finite values for every model and requested pcorr arm."""
+    """Stations with finite values for every model/seed and requested pcorr arm."""
     sub = table[table["model"].isin(models) & (table["goal"] == goal)
                 & (table["metric"] == metric) & (table["period_kind"] == PERIOD_KIND)]
+    seed_groups = {
+        (model, None if pd.isna(seed) else seed)
+        for model, seed in sub[["model", "seed"]].itertuples(index=False, name=None)
+    }
+    required = {(model, seed, pcorr) for model, seed in seed_groups for pcorr in pcorrs}
+    sub = sub[sub["pcorr"].isin(pcorrs)]
     sub = sub[np.isfinite(sub["value"])]
-    required = {(model, pcorr) for model in models for pcorr in pcorrs}
     return sorted(
         station for station, rows in sub.groupby("station")
-        if required.issubset(set(zip(rows["model"], rows["pcorr"])))
+        if required.issubset({
+            (model, None if pd.isna(seed) else seed, pcorr)
+            for model, seed, pcorr in rows[["model", "seed", "pcorr"]].itertuples(
+                index=False, name=None
+            )
+        })
     )
 
 
@@ -65,11 +75,15 @@ def percentile_table(table: pd.DataFrame, spec: dict, metrics: list[str],
             for (model, seed), sample in matched.groupby(
                     ["model", "seed"], dropna=False, sort=False):
                 values = sample.loc[np.isfinite(sample["value"]), "value"].to_numpy(dtype=float)
-                if not len(values):
-                    continue
+                n = len(values)
+                if n != len(cohort):
+                    raise ValueError(
+                        f"percentile cohort size mismatch for {model}/{seed}: "
+                        f"used {n} values from {len(cohort)} matched stations"
+                    )
                 percentiles = np.percentile(values, percents, method="linear")
                 row = {"model": model, "goal": goal, "metric": metric, "seed": seed,
-                       "n": len(cohort)}
+                       "n": n}
                 row.update(zip(percent_columns, percentiles))
                 output.append(row)
 

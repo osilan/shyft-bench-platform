@@ -15,7 +15,9 @@ import pandas as pd  # noqa: E402
 
 from . import canon  # noqa: E402
 from .metrics import EFFICIENCY_KEYS  # noqa: E402
-from .summaries import HEADLINE, PERIOD_KIND, matched_cohort  # noqa: E402
+from .summaries import (  # noqa: E402
+    HEADLINE, PERIOD_KIND, matched_cohort, percentile_table, summary_percents,
+)
 
 HEADLINE_LABEL = "KGE (Gupta et al., 2009)"
 DIAGNOSTIC_METRICS = {
@@ -127,64 +129,23 @@ def render_scoreboard(frame: pd.DataFrame) -> bytes:
 
 
 def cdf_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
-    """Build per-metric, per-goal empirical CDFs over shared finite station cohorts."""
-    required = {"model", "goal", "forcing", "direction", "pcorr", "optimizer",
-                "station", "metric", "value"}
-    missing = required - set(table.columns)
-    if missing:
-        raise ValueError(f"metric table is missing columns: {sorted(missing)}")
-    rows = table
-    for column in ("forcing", "direction", "pcorr", "optimizer"):
-        value = spec[column]
-        rows = rows[rows[column].isna()] if value is None else rows[rows[column] == value]
-    if "period_kind" in rows:
-        rows = rows[rows["period_kind"] == PERIOD_KIND]
-    rows = rows[rows["metric"].isin(CDF_METRICS)].copy()
-    rows["value"] = pd.to_numeric(rows["value"], errors="coerce")
-    selected = rows
-    rows = rows[np.isfinite(rows["value"]) & rows["station"].notna()]
-
-    model_order = canonical_model_order()
-    metric_order = {metric: i for i, metric in enumerate(canonical_metric_order("cdf"))}
-    goals = canon.load()["goals"]
-    output = []
-    for metric in canonical_metric_order("cdf"):
-        for goal in goals:
-            panel_selected = selected[(selected["metric"] == metric) & (selected["goal"] == goal)]
-            panel = rows[(rows["metric"] == metric) & (rows["goal"] == goal)]
-            models = [model for model in model_order if model in set(panel_selected["model"])]
-            if not models:
-                continue
-            cohort = matched_cohort(
-                selected, models, goal, metric=metric, pcorrs=(spec["pcorr"],)
-            )
-            if not cohort:
-                continue
-            matched = panel[panel["station"].isin(cohort)].copy()
-            matched["cumulative_probability"] = matched.groupby(
-                "model", sort=False
-            )["value"].rank(method="max", pct=True)
-            matched["_metric_rank"] = metric_order[metric]
-            matched["_goal_rank"] = goals.index(goal)
-            matched["_model_rank"] = matched["model"].map(model_order)
-            output.append(matched)
-    if not output:
-        return rows.iloc[0:0].assign(cumulative_probability=pd.Series(dtype=float))
-    result = pd.concat(output, ignore_index=True)
-    sort_columns = ["_metric_rank", "_goal_rank", "_model_rank", "value", "station"]
-    sort_columns += [column for column in ("variant", "seed") if column in result]
-    result = result.sort_values(sort_columns, kind="stable", na_position="first", ignore_index=True)
-    return result.drop(columns=["_metric_rank", "_goal_rank", "_model_rank"])
+    """Build the Lean-declared percentile table for the CDF metric/goal panels."""
+    return percentile_table(
+        table, spec, list(canonical_metric_order("cdf")), list(summary_percents("cdf"))
+    )
 
 
 def render_cdf(frame: pd.DataFrame, spec: dict) -> bytes:
-    """Render metric-by-goal empirical CDF panels with one curve per model."""
+    """Render percentile curves in metric-by-goal panels, keeping model seeds separate."""
     if frame.empty:
-        raise ValueError("cdf view has no matched finite metric rows")
+        raise ValueError("cdf view has no matched finite percentile rows")
     metrics = canonical_metric_order("cdf")
     goals = canon.load()["goals"]
     models = [model for model in canonical_model_order() if model in set(frame["model"])]
     colours = canon.model_colours()
+    percents = summary_percents("cdf")
+    percentile_columns = [f"p{percent:02d}" for percent in percents]
+    line_styles = ("-", "--", ":", "-.")
     fig, axes = plt.subplots(
         len(metrics), len(goals), figsize=(1.9 * len(goals), 1.15 * len(metrics)),
         squeeze=False, sharey=True,
@@ -194,20 +155,36 @@ def render_cdf(frame: pd.DataFrame, spec: dict) -> bytes:
             ax = axes[metric_index, goal_index]
             panel = frame[(frame["metric"] == metric) & (frame["goal"] == goal)]
             for model in models:
-                curve = panel[panel["model"] == model].sort_values(
-                    "value", kind="stable", ignore_index=True
-                )
-                if not curve.empty:
-                    ax.step(curve["value"], curve["cumulative_probability"], where="post",
-                            color=colours.get(model, "#000000"), linewidth=0.8)
+                model_rows = panel[panel["model"] == model]
+                seeds = sorted(model_rows["seed"].dropna().unique(), key=str)
+                if model_rows["seed"].isna().any():
+                    seeds = [None, *seeds]
+                for seed_index, seed in enumerate(seeds):
+                    curve = (model_rows[model_rows["seed"].isna()] if seed is None
+                             else model_rows[model_rows["seed"] == seed])
+                    if curve.empty:
+                        continue
+                    values = curve.iloc[0][percentile_columns].to_numpy(dtype=float)
+                    ax.plot(
+                        values, np.asarray(percents, dtype=float) / 100,
+                        color=colours.get(model, "#000000"), linestyle=line_styles[
+                            seed_index % len(line_styles)
+                        ], linewidth=0.8,
+                    )
+            if not panel.empty:
+                cohort_sizes = sorted({int(value) for value in panel["n"]})
+                cohort_label = (str(cohort_sizes[0]) if len(cohort_sizes) == 1
+                                else f"{cohort_sizes[0]}–{cohort_sizes[-1]}")
+                ax.text(0.98, 0.03, f"cohort n = {cohort_label}", transform=ax.transAxes,
+                        ha="right", va="bottom", fontsize=4.5)
             if metric_index == 0:
                 ax.set_title(goal_label(goal), fontsize=6)
             if goal_index == 0:
                 ax.set_ylabel(metric.replace("_", " "), fontsize=6)
             if metric_index == len(metrics) - 1:
-                ax.set_xlabel("Value", fontsize=6)
+                ax.set_xlabel("Percentile value", fontsize=6)
             ax.set_ylim(0, 1)
-            ax.set_yticks((0, 1))
+            ax.set_yticks((0, 0.5, 1))
             ax.tick_params(labelsize=5, length=2)
             ax.grid(axis="x", visible=False)
     handles = [

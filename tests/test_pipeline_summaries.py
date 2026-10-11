@@ -66,6 +66,34 @@ class PercentileTableTest(unittest.TestCase):
         self.assertEqual(values_by_group[("lstm", "seed-2")], 120)
         self.assertEqual(set(result["n"]), {3})
 
+    def test_matched_cohort_requires_every_seed_to_be_finite_at_each_station(self):
+        values = [
+            ("ptgsk", "kge", "kge_gupta_2009", station, seed, value)
+            for seed, station_values in (
+                ("seed-1", {"a": 0, "b": 10, "c": 20, "d": float("nan")}),
+                ("seed-2", {"a": float("nan"), "b": 110, "c": 120, "d": 130}),
+            )
+            for station, value in station_values.items()
+        ]
+        values.extend(
+            ("lstm", "kge", "kge_gupta_2009", station, None, value)
+            for station, value in (("a", 200), ("b", 210), ("c", 220), ("d", 230))
+        )
+        result = percentile_table(self.rows(values), self.spec, ["kge_gupta_2009"], [25, 50, 75])
+
+        expected = {
+            ("ptgsk", "seed-1"): (2, 12.5, 15, 17.5),
+            ("ptgsk", "seed-2"): (2, 112.5, 115, 117.5),
+            ("lstm", None): (2, 212.5, 215, 217.5),
+        }
+        self.assertEqual(len(result), len(expected))
+        observed = set()
+        for row in result.itertuples(index=False):
+            key = (row.model, None if pd.isna(row.seed) else row.seed)
+            observed.add(key)
+            self.assertEqual((row.n, row.p25, row.p50, row.p75), expected[key])
+        self.assertEqual(observed, set(expected))
+
     def test_percent_columns_follow_exported_cdf_list(self):
         exported = canon.load()["summaryPercents"]["cdf"]
         self.assertEqual(summary_percents("cdf"), tuple(exported))
