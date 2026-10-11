@@ -208,6 +208,20 @@ def render_cdf(frame: pd.DataFrame, spec: dict) -> bytes:
     return buffer.getvalue()
 
 
+def _sort_diagnostic_summary(summary: pd.DataFrame, view: str) -> pd.DataFrame:
+    model_order = canonical_model_order()
+    goal_order = {goal: index for index, goal in enumerate(canon.load()["goals"])}
+    metric_order = {metric: index for index, metric in enumerate(canonical_metric_order(view))}
+    return summary.assign(
+        _model_rank=summary["model"].map(model_order),
+        _goal_rank=summary["goal"].map(goal_order),
+        _metric_rank=summary["metric"].map(metric_order),
+    ).sort_values(
+        ["_model_rank", "model", "_goal_rank", "_metric_rank", "seed"],
+        kind="stable", na_position="first", ignore_index=True,
+    ).drop(columns=["_model_rank", "_goal_rank", "_metric_rank"])
+
+
 def diagnostic_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
     """Select one Lean-declared diagnostic view without collapsing its variants or seeds."""
     view = spec["view"]
@@ -216,23 +230,18 @@ def diagnostic_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
             table, spec, list(DIAGNOSTIC_METRICS[view]), list(summary_percents("box"))
         )
         return summary.drop(columns="metric")
+    if view == "kge-compass":
+        return _kge_compass_table(table, spec)
     if view == "ruzzante":
         summary = percentile_table(
             table, spec, list(canonical_metric_order(view)), list(summary_percents("box"))
         )
-        model_order = canonical_model_order()
-        goal_order = {goal: index for index, goal in enumerate(canon.load()["goals"])}
-        metric_order = {metric: index for index, metric in enumerate(canonical_metric_order(view))}
-        return summary.assign(
-            _model_rank=summary["model"].map(model_order),
-            _goal_rank=summary["goal"].map(goal_order),
-            _metric_rank=summary["metric"].map(metric_order),
-        ).sort_values(
-            ["_model_rank", "model", "_goal_rank", "_metric_rank", "seed"],
-            kind="stable", na_position="first", ignore_index=True,
-        ).drop(columns=["_model_rank", "_goal_rank", "_metric_rank"])
-    if view != "kge-compass":
-        raise ValueError(f"unsupported diagnostic view: {view}")
+        return _sort_diagnostic_summary(summary, view)
+    raise ValueError(f"unsupported diagnostic view: {view}")
+
+
+def _kge_compass_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
+    view = spec["view"]
     required = {"model", "goal", "forcing", "direction", "pcorr", "optimizer", "seed",
                 "station", "metric", "value"}
     missing = required - set(table.columns)
@@ -259,16 +268,7 @@ def diagnostic_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
         cohorts.append(goal_rows[goal_rows["station"].isin(cohort)])
     matched = pd.concat(cohorts, ignore_index=True) if cohorts else rows.iloc[0:0]
     result = percentile_table(matched, spec, metrics, list(summary_percents("box")))
-    goal_order = {goal: i for i, goal in enumerate(canon.load()["goals"])}
-    metric_order = {metric: i for i, metric in enumerate(canonical_metric_order(view))}
-    return result.assign(
-        _model_rank=result["model"].map(model_order),
-        _goal_rank=result["goal"].map(goal_order),
-        _metric_rank=result["metric"].map(metric_order),
-    ).sort_values(
-        ["_model_rank", "model", "_goal_rank", "_metric_rank", "seed"],
-        kind="stable", na_position="first", ignore_index=True,
-    ).drop(columns=["_model_rank", "_goal_rank", "_metric_rank"])
+    return _sort_diagnostic_summary(result, view)
 
 
 def _diagnostic_title(spec: dict) -> str:
@@ -418,17 +418,18 @@ def _render_ruzzante(frame: pd.DataFrame, spec: dict) -> bytes:
 def render_diagnostic(frame: pd.DataFrame, spec: dict) -> bytes:
     """Render a Lean-declared diagnostic summary."""
     view = spec["view"]
-    if view not in DIAGNOSTIC_METRICS:
-        raise ValueError(f"unsupported diagnostic view: {view}")
-    if frame.empty:
+    if frame.empty and view in DIAGNOSTIC_METRICS:
         raise ValueError(f"{view} view has no metric rows")
+    if view == "low-flow":
+        return _render_low_flow(frame, spec)
     if view == "kge-compass":
         return _render_kge_compass(frame, spec)
     if view == "ruzzante":
         return _render_ruzzante(frame, spec)
-    if view != "low-flow":
-        raise ValueError(f"unsupported diagnostic view: {view}")
+    raise ValueError(f"unsupported diagnostic view: {view}")
 
+
+def _render_low_flow(frame: pd.DataFrame, spec: dict) -> bytes:
     fig, ax = plt.subplots(figsize=(max(7.2, min(18, len(frame) * 0.28)), 4.2))
     colors = canon.model_colours()
     goals = canon.load()["goals"]
