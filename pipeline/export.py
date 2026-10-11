@@ -91,9 +91,24 @@ def check_grid(published: list[str], declared: list[str]) -> list[str]:
 def check_dist(dist: Path, scope: str) -> list[str]:
     """The published directory equals the declared set (`first-slice`, `published` or `grid`), and every
     listed file exists and matches its manifest checksum."""
+    size_limits = canon.load()["sizeLimits"]
+    files = sorted(path for path in dist.rglob("*") if path.is_file())
+    problems = []
+    total_size = 0
+    for file in files:
+        size = file.stat().st_size
+        total_size += size
+        limit_key = {".svg": "svgBytes", ".csv": "csvBytes"}.get(file.suffix.lower())
+        if limit_key is not None and size > size_limits[limit_key]:
+            rel = file.relative_to(dist).as_posix()
+            problems.append(f"{rel}: {size} bytes exceeds limit of {size_limits[limit_key]} bytes")
+    if total_size > size_limits["exportBytes"]:
+        problems.append(
+            f"export: {total_size} bytes exceeds limit of {size_limits['exportBytes']} bytes")
+
     index_path, manifest_path = dist / "figure-index.json", dist / "manifest.json"
-    problems = [f"{name} is missing" for name in ("canon.json", "catalogue.json")
-                if not (dist / name).is_file()]
+    problems += [f"{name} is missing" for name in ("canon.json", "catalogue.json")
+                 if not (dist / name).is_file()]
     if not index_path.is_file() or not manifest_path.is_file():
         return problems + ["figure-index.json or manifest.json is missing"]
     entries = json.loads(index_path.read_text())["figures"]
@@ -114,7 +129,7 @@ def check_dist(dist: Path, scope: str) -> list[str]:
             elif recorded.get(rel) != sha256(file.read_bytes()):
                 problems.append(f"{rel}: checksum differs from the manifest")
     allowed = listed | {"figure-index.json", "manifest.json", "canon.json", "catalogue.json"}
-    for file in sorted(path for path in dist.rglob("*") if path.is_file()):
+    for file in files:
         rel = file.relative_to(dist).as_posix()
         if rel not in allowed:
             problems.append(f"{rel}: file is not in the figure index")
