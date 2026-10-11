@@ -15,10 +15,9 @@ import pandas as pd  # noqa: E402
 
 from . import canon  # noqa: E402
 from .metrics import EFFICIENCY_KEYS  # noqa: E402
+from .summaries import HEADLINE, PERIOD_KIND, matched_cohort  # noqa: E402
 
-HEADLINE = "kge_gupta_2009"
 HEADLINE_LABEL = "KGE (Gupta et al., 2009)"
-PERIOD_KIND = "validation"
 DIAGNOSTIC_METRICS = {
     "kge-compass": ("kge_gupta_2009", "kge_kling_2012"),
     "low-flow": ("kge_1_over_q",),
@@ -58,20 +57,6 @@ plt.rcParams.update({
 
 def goal_label(goal: str) -> str:
     return goal.upper().replace("_", "+")
-
-
-def matched_cohort(table: pd.DataFrame, models: list[str], goal: str,
-                   metric: str = HEADLINE,
-                   pcorrs: tuple[bool, ...] = (False, True)) -> list[str]:
-    """Stations with finite values for every model and requested pcorr arm."""
-    sub = table[table["model"].isin(models) & (table["goal"] == goal)
-                & (table["metric"] == metric) & (table["period_kind"] == PERIOD_KIND)]
-    sub = sub[np.isfinite(sub["value"])]
-    required = {(model, pcorr) for model in models for pcorr in pcorrs}
-    return sorted(
-        station for station, rows in sub.groupby("station")
-        if required.issubset(set(zip(rows["model"], rows["pcorr"])))
-    )
 
 
 def scoreboard_table(table: pd.DataFrame, pcorr: bool) -> pd.DataFrame:
