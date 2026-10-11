@@ -17,23 +17,27 @@ def summary_percents(kind: str) -> tuple[int, ...]:
 
 
 def matched_cohort(table: pd.DataFrame, models: list[str], goal: str,
-                   metric: str = HEADLINE,
+                   metric: str | tuple[str, ...] = HEADLINE,
                    pcorrs: tuple[bool, ...] = (False, True)) -> list[str]:
-    """Stations with finite values for every model/seed and requested pcorr arm."""
+    """Stations with finite values for every model/seed/metric and requested pcorr arm."""
+    metrics = (metric,) if isinstance(metric, str) else metric
     sub = table[table["model"].isin(models) & (table["goal"] == goal)
-                & (table["metric"] == metric) & (table["period_kind"] == PERIOD_KIND)]
+                & table["metric"].isin(metrics) & (table["period_kind"] == PERIOD_KIND)]
     seed_groups = {
         (model, None if pd.isna(seed) else seed)
         for model, seed in sub[["model", "seed"]].itertuples(index=False, name=None)
     }
-    required = {(model, seed, pcorr) for model, seed in seed_groups for pcorr in pcorrs}
+    required = {
+        (model, seed, metric, pcorr)
+        for model, seed in seed_groups for metric in metrics for pcorr in pcorrs
+    }
     sub = sub[sub["pcorr"].isin(pcorrs)]
     sub = sub[np.isfinite(sub["value"])]
     return sorted(
         station for station, rows in sub.groupby("station")
         if required.issubset({
-            (model, None if pd.isna(seed) else seed, pcorr)
-            for model, seed, pcorr in rows[["model", "seed", "pcorr"]].itertuples(
+            (model, None if pd.isna(seed) else seed, metric, pcorr)
+            for model, seed, metric, pcorr in rows[["model", "seed", "metric", "pcorr"]].itertuples(
                 index=False, name=None
             )
         })
