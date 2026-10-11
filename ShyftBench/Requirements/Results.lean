@@ -43,11 +43,11 @@ requirement matchedComparison where
     then_ "they differ in the chosen axis and agree on every other axis"
     check executable
 
-  scenario "forward and reverse share catchments and seeds"
-    given "forward and reverse RPMSTK results with five seeds each"
+  scenario "forward run against reverse seeds"
+    given "the unseeded forward seNorge RPMSTK result and the reverse result with five seeds"
     when "they are compared along direction"
-    then_ "only catchments and seeds present in both directions are compared, and the figure states that the two validation periods differ (D-024)"
-    check deferred "the reverse run and the forward seed runs are not in the catalogue"
+    then_ "only catchments present in both directions are compared, the reverse seeds are shown as the envelope of their per-seed results and never pooled, and the figure states that the two validation periods differ (D-024)"
+    check deferred "the reverse run is not in the catalogue"
 
 requirement snowCohort where
   id "bench.cohort.snow"
