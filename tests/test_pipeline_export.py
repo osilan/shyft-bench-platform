@@ -284,84 +284,143 @@ class CdfFigureTest(unittest.TestCase):
             for metric, goal, model, station, seed, value, variant in values
         ], columns=[*table.COLUMNS, "variant"])
 
-    def test_bench_dashboard_cdf_uses_metric_goal_matched_cohorts_and_tie_ranks(self):
-        values = []
-        for model, station_values in (
-                ("ptgsk", {"a": 1, "b": 1, "c": 2, "d": 3, "e": 5}),
-                ("lstm", {"a": 0, "b": 1, "c": 2, "d": 3, "e": float("inf")})):
-            values.extend(("kge_gupta_2009", "kge", model, station, None, value, "base")
-                          for station, value in station_values.items())
-        values.extend([
-            ("kge_kling_2012", "kge", "ptgsk", "a", None, 0.1, "base"),
-            ("kge_kling_2012", "kge", "ptgsk", "b", None, 0.2, "base"),
-            ("kge_kling_2012", "kge", "lstm", "a", None, 0.3, "base"),
-            ("kge_kling_2012", "kge", "lstm", "b", None, float("nan"), "base"),
-            ("kge_kling_2012", "nse", "ptgsk", "x", None, 0.4, "base"),
-            ("kge_kling_2012", "nse", "ptgsk", "y", None, 0.5, "base"),
-            ("kge_kling_2012", "nse", "lstm", "y", None, 0.6, "base"),
-        ])
-        with patch.object(figures, "matched_cohort", wraps=figures.matched_cohort) as cohort:
-            result = figures.cdf_table(self.rows(values), self.spec)
-        self.assertTrue(any(
-            call.args[2] == "kge"
-            and call.kwargs == {"metric": "kge_gupta_2009", "pcorrs": (False,)}
-            for call in cohort.call_args_list
-        ))
-        panel = result[(result["metric"] == "kge_gupta_2009") & (result["goal"] == "kge")]
-        self.assertEqual(set(panel["station"]), {"a", "b", "c", "d"})
-        ptgsk = panel[panel["model"] == "ptgsk"].set_index("station")
-        self.assertEqual(ptgsk.loc[["a", "b"], "cumulative_probability"].tolist(), [0.5, 0.5])
-        self.assertEqual(ptgsk.loc["d", "cumulative_probability"], 1.0)
-        self.assertFalse((panel["station"] == "e").any())
-
-        second_metric = result[result["metric"] == "kge_kling_2012"]
-        kge_panel = second_metric[second_metric["goal"] == "kge"]
-        self.assertEqual(set(kge_panel["station"]), {"a"})
-        nse_panel = second_metric[second_metric["goal"] == "nse"]
-        self.assertEqual(set(nse_panel["station"]), {"y"})
-
-    def test_bench_dashboard_cdf_preserves_seed_and_variant_observations(self):
+    def test_bench_dashboard_cdf_uses_lean_percentiles_and_panel_cohort_sizes(self):
         values = [
-            ("kge_1_over_q", "kge", "ptgsk", "a", "seed-1", 0.2, "variant-1"),
-            ("kge_1_over_q", "kge", "ptgsk", "a", "seed-2", 0.4, "variant-2"),
-            ("kge_1_over_q", "kge", "lstm", "a", "seed-1", 0.3, "variant-1"),
-            ("kge_1_over_q", "kge", "lstm", "a", "seed-2", 0.5, "variant-2"),
+            (metric, "kge", model, station, None, value + offset, "base")
+            for metric in ("kge_gupta_2009", "kge_kling_2012")
+            for model, offset in (("ptgsk", 0), ("lstm", 10))
+            for station, value in zip("abcde", (0, 10, 20, 30, 40))
+        ]
+        result = figures.cdf_table(self.rows(values), self.spec)
+        panel = result[(result["metric"] == "kge_gupta_2009") & (result["goal"] == "kge")]
+        self.assertEqual(panel["n"].tolist(), [5, 5])
+        self.assertEqual(panel.set_index("model").loc["ptgsk", "p05"], 2)
+        self.assertEqual(panel.set_index("model").loc["ptgsk", "p50"], 20)
+        self.assertEqual(panel.set_index("model").loc["ptgsk", "p95"], 38)
+        self.assertEqual(panel.set_index("model").loc["lstm", "p05"], 12)
+        self.assertEqual(panel.set_index("model").loc["lstm", "p95"], 48)
+        self.assertEqual(result.columns.tolist(), [
+            "model", "goal", "metric", "seed", "n",
+            *[f"p{percent:02d}" for percent in figures.summary_percents("cdf")],
+        ])
+        self.assertNotIn("station", result)
+        self.assertFalse(result.duplicated(["model", "goal", "metric", "seed"]).any())
+
+    def test_bench_dashboard_cdf_preserves_seeds_as_separate_percentile_curves(self):
+        values = [
+            ("kge_1_over_q", "kge", model, station, seed, base + shift + step, "base")
+            for model, base in (("ptgsk", 0), ("lstm", 100))
+            for seed, shift in (("seed-1", 0), ("seed-2", 1000))
+            for station, step in (("a", 0), ("b", 10), ("c", 20))
         ]
         result = figures.cdf_table(self.rows(values), self.spec)
         self.assertEqual(len(result), 4)
         self.assertEqual(set(result["seed"]), {"seed-1", "seed-2"})
-        self.assertEqual(set(result["variant"]), {"variant-1", "variant-2"})
-        self.assertEqual(set(result["cumulative_probability"]), {0.5, 1.0})
-        self.assertTrue({"metric", "goal", "model", "station", "value",
-                         "variant", "seed", "cumulative_probability"}.issubset(result.columns))
+        ptgsk = result[result["model"] == "ptgsk"].set_index("seed")
+        self.assertEqual(ptgsk.loc["seed-2", "p50"] - ptgsk.loc["seed-1", "p50"], 1000)
 
-    def test_bench_dashboard_cdf_requires_finite_values_from_each_model(self):
+        real_subplots = figures.plt.subplots
+        captured = {}
+
+        def capture_subplots(*args, **kwargs):
+            captured["fig_axes"] = real_subplots(*args, **kwargs)
+            return captured["fig_axes"]
+
+        with patch.object(figures.plt, "subplots", side_effect=capture_subplots):
+            svg = figures.render_cdf(result, self.spec)
+        axes = captured["fig_axes"][1]
+        panel_ax = axes[figures.canonical_metric_order("cdf").index("kge_1_over_q"), 0]
+        self.assertEqual(len(panel_ax.lines), 4)
+        self.assertEqual(
+            [line.get_color() for line in panel_ax.lines],
+            [canon.model_colours()["ptgsk"]] * 2 + [canon.model_colours()["lstm"]] * 2,
+        )
+        for line in panel_ax.lines:
+            self.assertEqual(len(line.get_xdata()), 19)
+            np.testing.assert_array_equal(
+                line.get_ydata(),
+                np.asarray(figures.summary_percents("cdf"), dtype=float) / 100,
+            )
+        lines_by_model = {}
+        for line in panel_ax.lines:
+            lines_by_model.setdefault(line.get_color(), []).append(line.get_xdata())
+        self.assertEqual(len(lines_by_model[canon.model_colours()["ptgsk"]]), 2)
+        self.assertEqual(
+            sorted(float(line[9]) for line in lines_by_model[canon.model_colours()["ptgsk"]]),
+            [10, 1010],
+        )
+        self.assertEqual(len(panel_ax.texts), 1)
+        self.assertIn("cohort n = 3", panel_ax.texts[0].get_text())
+        self.assertIn(b"<svg", svg)
+
+    def test_bench_dashboard_cdf_without_seed_draws_one_curve_per_model(self):
         values = [
-            ("kge_gupta_2009", "kge", "ptgsk", "a", None, 0.2, "base"),
-            ("kge_gupta_2009", "kge", "lstm", "a", None, float("nan"), "base"),
+            ("kge_1_over_q", "kge", model, station, None, offset + index, "base")
+            for model, offset in (("ptgsk", 0), ("lstm", 10))
+            for index, station in enumerate(("a", "b", "c"))
         ]
         result = figures.cdf_table(self.rows(values), self.spec)
-        self.assertTrue(result.empty)
-        with self.assertRaisesRegex(ValueError, "no matched finite metric rows"):
-            figures.render_cdf(result, self.spec)
+        real_subplots = figures.plt.subplots
+        captured = {}
+
+        def capture_subplots(*args, **kwargs):
+            captured["fig_axes"] = real_subplots(*args, **kwargs)
+            return captured["fig_axes"]
+
+        with patch.object(figures.plt, "subplots", side_effect=capture_subplots):
+            svg = figures.render_cdf(result, self.spec)
+        self.assertIn(b"<svg", svg)
+        self.assertEqual(len(result), 2)
+        self.assertTrue(result["seed"].isna().all())
+        axes = captured["fig_axes"][1]
+        panel_ax = axes[figures.canonical_metric_order("cdf").index("kge_1_over_q"), 0]
+        self.assertEqual(len(panel_ax.lines), 2)
 
     def test_bench_dashboard_declared_cdf_svg_and_csv_are_deterministic(self):
+        values = [(metric, goal, model, station, None, float(index), "base")
+                  for index, metric in enumerate(figures.CDF_METRICS)
+                  for goal in ("kge", "nse")
+                  for model in ("ptgsk", "lstm")
+                  for station in ("a", "b")]
+        result = figures.cdf_table(self.rows(values), self.spec)
+        csv = figures.table_csv(result)
+        real_subplots = figures.plt.subplots
+        captured = {}
+
+        def capture_subplots(*args, **kwargs):
+            captured["fig_axes"] = real_subplots(*args, **kwargs)
+            return captured["fig_axes"]
+
+        with patch.object(figures.plt, "subplots", side_effect=capture_subplots):
+            svg = figures.render_cdf(result, self.spec)
+        axes = captured["fig_axes"][1]
+        self.assertEqual(sum(len(ax.texts) for ax in axes.flat),
+                         result.groupby(["metric", "goal"]).ngroups)
+        self.assertEqual(csv, figures.table_csv(result))
+        self.assertEqual(svg, figures.render_cdf(result, self.spec))
+        self.assertEqual(csv.splitlines()[0].decode().split(","), result.columns.tolist())
+        self.assertNotIn(b"station", csv.splitlines()[0])
+        self.assertIn(b"<svg", svg)
+
+    def test_bench_dashboard_cdf_full_size_outputs_fit_lean_size_limits(self):
+        models = [model["key"] for model in canon.load()["models"][:5]]
+        goals = canon.load()["goals"]
+        metrics = figures.canonical_metric_order("cdf")
         values = [
-            (metric, goal, model, station, "seed-1", float(index), "variant-1")
-            for index, metric in enumerate(figures.CDF_METRICS)
-            for goal in ("kge", "nse")
-            for model in ("ptgsk", "lstm")
-            for station in ("a", "b")
+            (metric, goal, model, f"station-{station}", None,
+             float(metric_index + goal_index + model_index + station), "base")
+            for metric_index, metric in enumerate(metrics)
+            for goal_index, goal in enumerate(goals)
+            for model_index, model in enumerate(models)
+            for station in range(12)
         ]
         result = figures.cdf_table(self.rows(values), self.spec)
         csv = figures.table_csv(result)
         svg = figures.render_cdf(result, self.spec)
-        self.assertEqual(csv, figures.table_csv(result))
-        self.assertEqual(svg, figures.render_cdf(result, self.spec))
-        self.assertTrue(csv.startswith(b"experiment_id,"))
-        self.assertIn(b"cumulative_probability", csv)
-        self.assertIn(b"seed-1", csv)
-        self.assertIn(b"<svg", svg)
+        limits = canon.load()["sizeLimits"]
+        self.assertEqual(len(result), 5 * 10 * 15)
+        self.assertLessEqual(len(csv), limits["csvBytes"])
+        self.assertLessEqual(len(svg), limits["svgBytes"])
 
 
 class WriteOnceTest(unittest.TestCase):
