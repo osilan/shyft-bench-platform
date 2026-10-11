@@ -61,6 +61,10 @@ private def canon : Json :=
     ("catalogue", arr (catalog.map entryJson)),
     ("firstSlice", arr (firstSlice.map (str ·.id))),
     ("published", arr (published.map (str ·.id))),
+    ("summaryPercents", Json.mkObj [("cdf", arr (cdfPercents.map toJson)),
+      ("box", arr (boxPercents.map toJson))]),
+    ("sizeLimits", Json.mkObj [("svgBytes", toJson maxSvgBytes), ("csvBytes", toJson maxCsvBytes),
+      ("exportBytes", toJson maxExportBytes)]),
     ("figureGrid", arr (figureGrid.map figureJson))]
 
 def main : IO Unit := IO.println canon.pretty

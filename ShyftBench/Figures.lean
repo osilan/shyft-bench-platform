@@ -98,6 +98,16 @@ def figureGrid : List FigureSpec := aggregateFigures ++ detailFigures
 def maxAggregateFigures : Nat := 48
 def maxDetailFigures : Nat := 10
 
+/-- Size limits of a published export (D-031), in bytes: 1 MB is 1,048,576 bytes. -/
+def maxSvgBytes : Nat := 2 * 1024 * 1024
+def maxCsvBytes : Nat := 1024 * 1024
+def maxExportBytes : Nat := 15 * 1024 * 1024
+
+/-- Percentiles at which published distributions are summarised (D-031): CDF curves use all
+nineteen, boxes the five in `boxPercents` (whiskers at 5 and 95). -/
+def cdfPercents : List Nat := [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95]
+def boxPercents : List Nat := [5, 25, 50, 75, 95]
+
 /-- The export check: published figure ids equal the declared ids, none missing, none extra. -/
 def gridMatches (declared published : List String) : Bool :=
   declared.all published.contains && published.all declared.contains
@@ -113,6 +123,11 @@ def gridMatches (declared published : List String) : Bool :=
 #guard published.all aggregateFigures.contains
 #guard firstSlice.all published.contains
 #guard (published.map FigureSpec.id).eraseDups.length == published.length
+#guard maxSvgBytes ≤ maxExportBytes && maxCsvBytes ≤ maxExportBytes
+#guard cdfPercents.length == 19
+#guard (cdfPercents.zip cdfPercents.tail).all fun p => p.1 < p.2
+#guard (boxPercents.zip boxPercents.tail).all fun p => p.1 < p.2
+#guard boxPercents.all cdfPercents.contains
 #guard aggregateFigures.all fun f => f.view != .catchmentDetail && f.station.isNone
 #guard detailFigures.all fun f => f.view == .catchmentDetail && f.station.isSome
 #guard (figureGrid.filter (·.forcing == .aifs)).all fun f => f.view != .lstmVsShyft
