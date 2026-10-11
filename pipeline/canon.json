@@ -1,4 +1,8 @@
-{"stations":
+{"summaryPercents":
+ {"cdf":
+  [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95],
+  "box": [5, 25, 50, 75, 95]},
+ "stations":
  [{"regime": "Mountain", "id": "109.29"},
   {"regime": "Inland", "id": "157.3"},
   {"regime": "Atlantic", "id": "107.3"},
@@ -108,6 +112,8 @@
   {"regime": "Inland", "id": "19.96"},
   {"regime": "Atlantic", "id": "26.29"},
   {"regime": "Transition", "id": "168.3"}],
+ "sizeLimits":
+ {"svgBytes": 2097152, "exportBytes": 15728640, "csvBytes": 1048576},
  "shyftPin": "bfbdbe63c",
  "regimes":
  [{"name": "Mountain", "colour": "#2166ac", "code": 1},

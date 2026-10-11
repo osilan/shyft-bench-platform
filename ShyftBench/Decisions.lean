@@ -135,6 +135,10 @@ def decisions : List Decision := [
   { id := "D-030", date := "2026-10-10"
     decided := "The site publishes the figures in Figures.published: the five forward legacy views for the five legacy stacks, with pcorr off and on. Figures outside this set are not published until a later decision adds them."
     why := "An explicit published subset lets the export and site share a bounded, Lean-declared release set while the remaining aggregate figures are still future work."
+    refines := ["bench.export", "bench.dashboard"] },
+  { id := "D-031", date := "2026-10-10"
+    decided := "Published figures and their data tables hold aggregates only, never per-station values. Distributions are summarised at fixed percentiles with linear interpolation: CDF panels at the nineteen percentiles Figures.cdfPercents (5 to 95 in steps of 5), boxes at Figures.boxPercents (5, 25, 50, 75, 95, whiskers at 5 and 95). Every summary shows its cohort size n and is computed per seed, never pooled across seeds (refines D-028). The diagnostic views summarise per model and goal: kge-compass has one panel per goal with each model at the medians of both KGE formulations and interquartile bars; low-flow has a KGE(1/Q) box per model and goal; ruzzante has a 3 by 4 grid (seasonal, interannual and irregular scales by NSE, r, alpha and variance share) of medians with interquartile bars per model and goal. The export check fails if an SVG exceeds 2 MB, a CSV 1 MB or the whole export 15 MB (1 MB is 1,048,576 bytes); the limits are declared in Figures.lean."
+    why := "The first real export was 217 MB because every station was drawn and labelled and every station value was tabulated; per-station tables also republish the internal long metrics table, which is not published. Aggregates keep the figures readable and the export small."
     refines := ["bench.export", "bench.dashboard"] }
 ]
 

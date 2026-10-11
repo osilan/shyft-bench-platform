@@ -12,7 +12,7 @@ namespace ShyftBench
 
 requirement exportData where
   id "bench.export"
-  shall "Generate the site's export from the Lean specification: pre-rendered SVG figures, one CSV data table per figure, a figure index, the canon (model, goal, regime and metric order and colours), the catalogue and a manifest, with the index, canon, catalogue and manifest as JSON. The figure grid is declared in Lean as an explicit list, at most 48 aggregate figures and 10 catchment-detail figures; the export check fails if a declared figure is missing or an undeclared one appears. The internal long metrics table has one row per experiment, model, goal, forcing, direction, pcorr, optimiser, seed, station, period kind and metric, and is stored as Parquet; it is not published. Daily series are not published. The manifest records, for every figure and table, its source files with SHA-256 values, the code version and the Shyft commit."
+  shall "Generate the site's export from the Lean specification: pre-rendered SVG figures, one CSV data table per figure, a figure index, the canon (model, goal, regime and metric order and colours), the catalogue and a manifest, with the index, canon, catalogue and manifest as JSON. The figure grid is declared in Lean as an explicit list, at most 48 aggregate figures and 10 catchment-detail figures; the export check fails if a declared figure is missing or an undeclared one appears. The internal long metrics table has one row per experiment, model, goal, forcing, direction, pcorr, optimiser, seed, station, period kind and metric, and is stored as Parquet; it is not published. Daily series are not published. Figure tables hold aggregates, not per-station values: distributions are summarised at the fixed percentiles declared in Lean, with the cohort size, so no table repeats a row of the internal long metrics table. Each SVG is at most 2 MB, each CSV at most 1 MB and the whole export at most 15 MB (1 MB is 1,048,576 bytes), as declared in Lean; the export check fails above a limit. The manifest records, for every figure and table, its source files with SHA-256 values, the code version and the Shyft commit."
   strength must
 
   scenario "export matches the declared figure grid"
@@ -48,9 +48,21 @@ requirement exportData where
     then_ "its figure ids equal the ids in Figures.published, with none missing and none extra"
     check deferred "Python `pipeline check --scope published` enforces the set against the exported published list, but its checks are not represented in Lean"
 
+  scenario "figure tables hold aggregates only"
+    given "computed metrics for many stations"
+    when "the export is generated"
+    then_ "every figure table holds percentile or median summaries with the cohort size, and no table has a row per station"
+    check deferred "the Python exporter writes the summary tables, but its checks are not represented in Lean"
+
+  scenario "export stays within the size limits"
+    given "a generated export"
+    when "the export check runs"
+    then_ "it fails if any SVG exceeds the SVG limit, any CSV the CSV limit or the whole export the export limit declared in Lean"
+    check deferred "the size check runs in Python; Lean declares the limits but cannot read file sizes"
+
 requirement dashboard where
   id "bench.dashboard"
-  shall "Present the results as final, paper-quality figures on a thin static site, like a paper or poster with selectors. Python draws every figure in advance as SVG, and the same files go into the paper. The selectors pick the matching figure, forcing first and then the variants (direction, precipitation correction, optimiser); seeds are not a selector, their spread is shown inside the figures. Each figure has its data table below it. Nothing is computed in the browser. seNorge2018 is the main experiment and the default; results are never compared across forcings. Show only matched comparisons, in the canonical model order and colours, and preserve seed spread without silently selecting a best seed. The figures cover the scoreboard (median over the matched cohort), cumulative distributions as small multiples by goal and metric (both KGE formulations, KGE(1/Q) and each Ruzzante decomposition metric, with model curves over a finite matched cohort per panel), per-catchment model comparisons, calibration-to-validation drop, precipitation-correction effects, both KGE formulations, Ruzzante decomposition, low-flow KGE(1/Q) and flow-duration curves, forward versus reverse, LSTM versus Shyft stacks, seed spread, maps and catchment hydrographs."
+  shall "Present the results as final, paper-quality figures on a thin static site, like a paper or poster with selectors. Python draws every figure in advance as SVG, and the same files go into the paper. The selectors pick the matching figure, forcing first and then the variants (direction, precipitation correction, optimiser); seeds are not a selector, their spread is shown inside the figures. Each figure has its data table below it. Nothing is computed in the browser. seNorge2018 is the main experiment and the default; results are never compared across forcings. Show only matched comparisons, in the canonical model order and colours, and preserve seed spread without silently selecting a best seed. Distributions are shown as summaries, never as every station: cumulative distributions at fixed percentiles, the KGE-formulation view and the Ruzzante decomposition as medians with interquartile bars per model and goal, and low-flow KGE(1/Q) as boxes per model and goal, each with its cohort size. The figures cover the scoreboard (median over the matched cohort), cumulative distributions as small multiples by goal and metric (both KGE formulations, KGE(1/Q) and each Ruzzante decomposition metric, with model curves over a finite matched cohort per panel), per-catchment model comparisons, calibration-to-validation drop, precipitation-correction effects, both KGE formulations, Ruzzante decomposition, low-flow KGE(1/Q) and flow-duration curves, forward versus reverse, LSTM versus Shyft stacks, seed spread, maps and catchment hydrographs."
   strength must
 
   scenario "forcing selects a comparable result set"
@@ -82,6 +94,18 @@ requirement dashboard where
     when "a cumulative distribution is drawn for a goal"
     then_ "separate metric panels show both KGE formulations, KGE(1/Q) and each Ruzzante decomposition metric, with model curves over the finite catchments matched across models for that panel"
     check deferred "Python CDF behavior is not covered by Lean guards; LeanSpec has no Python target"
+
+  scenario "cumulative distributions are drawn at fixed percentiles"
+    given "matched results with finite values for several models and goals"
+    when "a cumulative distribution is drawn"
+    then_ "each model curve is plotted at the percentiles declared in Lean, using linear interpolation, and each panel shows its cohort size"
+    check deferred "the Python renderer draws the percentile curves, but LeanSpec has no Python target"
+
+  scenario "diagnostic views summarise per model and goal"
+    given "matched results for several models and goals"
+    when "the kge-compass, low-flow and ruzzante figures are drawn"
+    then_ "kge-compass shows the medians of both KGE formulations with interquartile bars per model in one panel per goal, low-flow shows a KGE(1/Q) box per model and goal, ruzzante shows medians with interquartile bars per model and goal for its twelve components, and none draws or labels individual stations"
+    check deferred "the Python renderer draws the summary views, but LeanSpec has no Python target"
 
   scenario "first slice is published"
     given "the legacy seNorge forward BOBYQA results for ptgsk, ptstk, ptsthbv, rpmgsk and rpmstk"
