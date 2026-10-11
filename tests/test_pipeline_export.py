@@ -335,20 +335,25 @@ class CdfFigureTest(unittest.TestCase):
             [line.get_color() for line in panel_ax.lines],
             [canon.model_colours()["ptgsk"]] * 2 + [canon.model_colours()["lstm"]] * 2,
         )
-        for line in panel_ax.lines:
-            self.assertEqual(len(line.get_xdata()), 19)
+        percents = figures.summary_percents("cdf")
+        expected_curves = {
+            (model, seed): np.percentile(
+                [base + shift + step for step in (0, 10, 20)],
+                percents,
+                method="linear",
+            )
+            for model, base in (("ptgsk", 0), ("lstm", 100))
+            for seed, shift in (("seed-1", 0), ("seed-2", 1000))
+        }
+        for line, (model, seed) in zip(
+                panel_ax.lines,
+                [(model, seed) for model in ("ptgsk", "lstm")
+                 for seed in ("seed-1", "seed-2")]):
+            np.testing.assert_array_equal(line.get_xdata(), expected_curves[(model, seed)])
             np.testing.assert_array_equal(
                 line.get_ydata(),
-                np.asarray(figures.summary_percents("cdf"), dtype=float) / 100,
+                np.asarray(percents, dtype=float) / 100,
             )
-        lines_by_model = {}
-        for line in panel_ax.lines:
-            lines_by_model.setdefault(line.get_color(), []).append(line.get_xdata())
-        self.assertEqual(len(lines_by_model[canon.model_colours()["ptgsk"]]), 2)
-        self.assertEqual(
-            sorted(float(line[9]) for line in lines_by_model[canon.model_colours()["ptgsk"]]),
-            [10, 1010],
-        )
         self.assertEqual(len(panel_ax.texts), 1)
         self.assertIn("cohort n = 3", panel_ax.texts[0].get_text())
         self.assertIn(b"<svg", svg)
