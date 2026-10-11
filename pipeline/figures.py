@@ -333,7 +333,13 @@ def _render_kge_compass(frame: pd.DataFrame, spec: dict) -> bytes:
                     fmt="o", color=colours[model], ecolor=colours[model], markersize=4,
                     capsize=1.5, linewidth=0.8,
                 )
-        ax.set_title(goal_label(goal), fontsize=6)
+        title = goal_label(goal)
+        if not panel.empty:
+            cohort = int(panel["n"].min()), int(panel["n"].max())
+            cohort_label = (str(cohort[0]) if cohort[0] == cohort[1]
+                            else f"{cohort[0]}–{cohort[1]}")
+            title += f" (n = {cohort_label})"
+        ax.set_title(title, fontsize=6)
         ax.set_xlabel("KGE (Gupta et al., 2009)", fontsize=5.5)
         ax.set_ylabel("KGE (Kling et al., 2012)", fontsize=5.5)
         ax.tick_params(labelsize=5, length=2)

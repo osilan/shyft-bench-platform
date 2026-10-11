@@ -312,12 +312,36 @@ class DiagnosticFigureTest(unittest.TestCase):
             np.testing.assert_allclose(x_segment, [model_index + 2.75, model_index + 8.25])
             np.testing.assert_allclose(y_segment, [model_index + 102.75, model_index + 108.25])
         self.assertEqual([ax.get_title() for ax in axes.flat],
-                         [figures.goal_label(goal) for goal in goals])
+                         [f"{figures.goal_label(goal)} (n = 12)" for goal in goals])
         self.assertEqual(svg, figures.render_diagnostic(result, self.specs["kge-compass"]))
         self.assertNotIn(b"station-", svg)
         limits = canon.load()["sizeLimits"]
         self.assertLessEqual(len(svg), limits["svgBytes"])
         self.assertLessEqual(len(csv), limits["csvBytes"])
+
+    def test_bench_kge_compass_titles_use_summary_seed_cohort_ranges(self):
+        goals = canon.load()["goals"]
+        rows = pd.DataFrame([
+            ("ptgsk", goal, metric, seed, n, 0.1, 0.2, 0.3)
+            for goal, sizes in zip(goals[:2], ((85, 80, 82), (7, 7, 7)))
+            for seed, n in zip((None, "seed-1", "seed-2"), sizes)
+            for metric in figures.DIAGNOSTIC_METRICS["kge-compass"]
+        ], columns=["model", "goal", "metric", "seed", "n", "p25", "p50", "p75"])
+        real_subplots = figures.plt.subplots
+        captured = {}
+
+        def capture_subplots(*args, **kwargs):
+            captured["fig_axes"] = real_subplots(*args, **kwargs)
+            return captured["fig_axes"]
+
+        with patch.object(figures.plt, "subplots", side_effect=capture_subplots):
+            figures.render_diagnostic(rows, self.specs["kge-compass"])
+        axes = captured["fig_axes"][1]
+        self.assertEqual([ax.get_title() for ax in axes.flat], [
+            f"{figures.goal_label(goals[0])} (n = 80–85)",
+            f"{figures.goal_label(goals[1])} (n = 7)",
+            *[figures.goal_label(goal) for goal in goals[2:]],
+        ])
 
     def test_bench_low_flow_table_uses_box_percentiles_and_keeps_seed_cohorts(self):
         models = ["ptgsk", "ptstk"]
