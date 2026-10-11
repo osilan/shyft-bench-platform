@@ -481,6 +481,9 @@ class DiagnosticFigureTest(unittest.TestCase):
             for metric in metrics if metric.endswith(f"_{scale}")
         ]
         self.assertEqual([ax.get_title() for ax in axes.flat], expected_titles)
+        for ax in axes.flat:
+            self.assertEqual([tick.get_text() for tick in ax.get_xticklabels()],
+                             [figures.goal_label(goal) for goal in goals])
         first_panel = axes[0, 0]
         self.assertEqual(len(first_panel.containers), len(models))
         self.assertFalse(any(isinstance(collection, figures.plt.matplotlib.collections.PathCollection)

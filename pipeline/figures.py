@@ -389,7 +389,7 @@ def _render_ruzzante(frame: pd.DataFrame, spec: dict) -> bytes:
     fig, axes = plt.subplots(
         len(scales), len(scale_metrics[scales[0]]),
         figsize=(2.8 * len(scale_metrics[scales[0]]), 2.25 * len(scales)),
-        squeeze=False, sharex=True,
+        squeeze=False,
     )
     for row, scale in enumerate(scales):
         for column, metric in enumerate(scale_metrics[scale]):
