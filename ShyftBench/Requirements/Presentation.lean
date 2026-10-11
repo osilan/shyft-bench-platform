@@ -12,7 +12,7 @@ namespace ShyftBench
 
 requirement exportData where
   id "bench.export"
-  shall "Generate the site's export from the Lean specification: pre-rendered SVG figures, one CSV data table per figure, a figure index, the canon (model, goal, regime and metric order and colours), the catalogue and a manifest, with the index, canon, catalogue and manifest as JSON. The figure grid is declared in Lean as an explicit list, at most 48 aggregate figures and 10 catchment-detail figures; the export check fails if a declared figure is missing or an undeclared one appears. The internal long metrics table has one row per experiment, model, goal, forcing, direction, pcorr, optimiser, seed, station, period kind and metric, and is stored as Parquet; it is not published. Daily series are not published. Figure tables hold aggregates, not per-station values: distributions are summarised at the fixed percentiles declared in Lean, with the cohort size, so no table repeats a row of the internal long metrics table. Each SVG is at most 2 MB, each CSV at most 1 MB and the whole export at most 15 MB (1 MB is 1,048,576 bytes), as declared in Lean; the export check fails above a limit. The manifest records, for every figure and table, its source files with SHA-256 values, the code version and the Shyft commit."
+  shall "Generate the site's export from the Lean specification: pre-rendered SVG figures, one CSV data table per figure, a figure index, the canon (model, goal, regime and metric order and colours), the catalogue and a manifest, with the index, canon, catalogue and manifest as JSON. The figure grid is declared in Lean as an explicit list, at most 48 aggregate figures and 10 catchment-detail figures; the export check fails if a declared figure is missing or an undeclared one appears. The internal long metrics table has one row per experiment, model, goal, forcing, direction, pcorr, optimiser, seed, station, period kind and metric, and is stored as Parquet; it is not published. Daily series are not published. A figure may plot one unlabelled point, curve or map marker per catchment; its table then has at most one row per catchment and plotted quantity, and otherwise holds summaries at the fixed percentiles declared in Lean with the cohort size. No table repeats the internal long metrics table, and no figure draws a station label. Each SVG is at most 2 MB, each CSV at most 1 MB and the whole export at most 15 MB (1 MB is 1,048,576 bytes), as declared in Lean; the export check fails above a limit. The manifest records, for every figure and table, its source files with SHA-256 values, the code version and the Shyft commit."
   strength must
 
   scenario "export matches the declared figure grid"
@@ -48,10 +48,10 @@ requirement exportData where
     then_ "its figure ids equal the ids in Figures.published, with none missing and none extra"
     check deferred "Python `pipeline check --scope published` enforces the set against the exported published list, but its checks are not represented in Lean"
 
-  scenario "figure tables hold aggregates only"
+  scenario "figure tables follow what the figure plots"
     given "computed metrics for many stations"
     when "the export is generated"
-    then_ "every figure table holds percentile or median summaries with the cohort size, and no table has a row per station"
+    then_ "a table has at most one row per catchment and plotted quantity when its figure plots per catchment, percentile or median summaries with the cohort size otherwise, and no figure draws a station label"
     check deferred "the Python exporter writes the summary tables, but its checks are not represented in Lean"
 
   scenario "export stays within the size limits"
@@ -62,7 +62,7 @@ requirement exportData where
 
 requirement dashboard where
   id "bench.dashboard"
-  shall "Present the results as final, paper-quality figures on a thin static site, like a paper or poster with selectors. Python draws every figure in advance as SVG, and the same files go into the paper. The selectors pick the matching figure, forcing first and then the variants (direction, precipitation correction, optimiser); seeds are not a selector, their spread is shown inside the figures. Each figure has its data table below it. Nothing is computed in the browser. seNorge2018 is the main experiment and the default; results are never compared across forcings. Show only matched comparisons, in the canonical model order and colours, and preserve seed spread without silently selecting a best seed. Distributions are shown as summaries, never as every station: cumulative distributions at fixed percentiles, the KGE-formulation view and the Ruzzante decomposition as medians with interquartile bars per model and goal, and low-flow KGE(1/Q) as boxes per model and goal, each with its cohort size. The figures cover the scoreboard (median over the matched cohort), cumulative distributions as small multiples by goal and metric (both KGE formulations, KGE(1/Q) and each Ruzzante decomposition metric, with model curves over a finite matched cohort per panel), per-catchment model comparisons, calibration-to-validation drop, precipitation-correction effects, both KGE formulations, Ruzzante decomposition, low-flow KGE(1/Q) and flow-duration curves, forward versus reverse, LSTM versus Shyft stacks, seed spread, maps and catchment hydrographs."
+  shall "Present the results as final, paper-quality figures on a thin static site organised by research question into the pages declared in Lean (Figures.pages): study area, models and precipitation correction, goal functions, robustness (direction and equifinality) and the comparison with the regional LSTM; a planned page is hidden until its data are in the catalogue. Python draws every figure in advance as SVG, and the same files go into the paper. Each page shows its figures at full width with the selectors declared for that page (precipitation correction, model or goal), and each figure's data table is folded below it, rounded, with a CSV download. Nothing is computed in the browser. seNorge2018 is the main experiment and the default; results are never compared across forcings. Show only matched comparisons, in the canonical model order and colours; direction is shown by line style, never by another colour. Seeds are not a selector: their spread is shown inside the figures as the envelope of the per-seed curves, never pooled and never reduced to a best seed. A figure may show one unlabelled point, curve or map marker per catchment. Maps are static SVG drawn from the pinned catchment attributes and Norway outline."
   strength must
 
   scenario "forcing selects a comparable result set"
@@ -112,6 +112,24 @@ requirement dashboard where
     when "the site is published"
     then_ "it shows a scoreboard figure with its CSV table for each pcorr setting, containing all five stacks in canonical model order and each model-goal median over the matched catchment cohort"
     check deferred "the five-stack build and static site are not yet published"
+
+  scenario "site follows the declared pages"
+    given "the pages declared in Lean"
+    when "the site is loaded"
+    then_ "it shows one menu entry per published page, that page's figures at full width with its declared selectors, and each data table folded below its figure with rounded values and a CSV download"
+    check deferred "the page layout is not built (D-032)"
+
+  scenario "direction is drawn by line style"
+    given "forward and reverse results of one model with several seeds"
+    when "they are drawn in one figure"
+    then_ "both use the model's canonical colour, forward solid and reverse dashed, with seed spread as the envelope of the per-seed curves"
+    check deferred "the reverse run and the forward seed runs are not in the catalogue"
+
+  scenario "maps use pinned locations"
+    given "the catchment attributes and Norway outline pinned in Lean"
+    when "a map is drawn"
+    then_ "each catchment is one unlabelled marker at its pinned location on the pinned outline, and the SVG is within the size limit"
+    check deferred "the catchment attributes and outline are not pinned yet"
 
   scenario "site computes nothing"
     when "the site is built and loaded"

@@ -107,7 +107,7 @@ def snowCohortDesign : DesignUnit := {
 
 def allRequirements : Array Requirement := #[
   automateWorkflow, typedCatalogue, pinnedShyft, launchPrecondition, launchFallback,
-  resultFiling, matchedComparison, snowCohort, legacyReadOnly, collectReverseRun,
+  resultFiling, matchedComparison, snowCohort, catchmentAttributes, legacyReadOnly, collectReverseRun,
   canonicalMetrics, exportData, dashboard, smokeTier, sigma2Safety, codeDivergence,
   documentation, independentAudit]
 

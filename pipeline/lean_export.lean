@@ -42,6 +42,21 @@ private def figureJson (f : FigureSpec) : Json :=
     ("pcorr", match f.pcorr with | some p => toJson p | none => Json.null),
     ("optimizer", str f.optimizer.key), ("station", optStr f.station)]
 
+/-- A page figure: the grid fields plus the model and goal a page selector picks (D-032). -/
+private def pageFigureJson (f : FigureSpec) : Json :=
+  Json.mkObj [
+    ("id", str f.id), ("view", str f.view.key), ("forcing", str f.forcing.key),
+    ("direction", optStr (f.direction.map Direction.key)),
+    ("pcorr", match f.pcorr with | some p => toJson p | none => Json.null),
+    ("optimizer", str f.optimizer.key), ("station", optStr f.station),
+    ("model", optStr (f.model.map Model.key)), ("goal", optStr (f.goal.map Goal.key))]
+
+private def pageJson (p : Page) : Json :=
+  Json.mkObj [
+    ("key", str p.key), ("title", str p.title), ("status", str p.status.key),
+    ("selectors", arr (p.selectors.map (str ·.key))),
+    ("figures", arr (p.figures.map (str ·.id)))]
+
 private def optimumKey : MetricOptimum → String
   | .higher => "higher" | .lower => "lower" | .targetOne => "target-1"
   | .targetZero => "target-0" | .none => "none"
@@ -65,6 +80,9 @@ private def canon : Json :=
       ("box", arr (boxPercents.map toJson))]),
     ("sizeLimits", Json.mkObj [("svgBytes", toJson maxSvgBytes), ("csvBytes", toJson maxCsvBytes),
       ("exportBytes", toJson maxExportBytes)]),
-    ("figureGrid", arr (figureGrid.map figureJson))]
+    ("figureGrid", arr (figureGrid.map figureJson)),
+    ("pages", arr (pages.map pageJson)),
+    ("pageFigures", arr (pageFigures.map pageFigureJson)),
+    ("pagesPublished", arr (pagesPublished.map (str ·.id)))]
 
 def main : IO Unit := IO.println canon.pretty

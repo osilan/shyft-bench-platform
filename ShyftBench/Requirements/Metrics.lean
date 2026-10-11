@@ -12,7 +12,7 @@ namespace ShyftBench
 
 requirement canonicalMetrics where
   id "bench.metrics.canonical"
-  shall "Recompute dashboard metrics from daily observed and simulated discharge series for every legacy Shyft, reverse-run, LSTM and new result; do not display metric columns stored in legacy CSVs. Use hydroeval for NSE, KGE (Gupta et al., 2009), KGE' (Kling et al., 2012), PBIAS and KGE(1/Q), and a characterized port of the old repository's Ruzzante et al. (2025) NSE decomposition. KGE(1/Q) uses 1/(Q + ε), where ε is 0.01 times mean observed flow over the evaluation period, added to both series; retain zero-flow days. Check each implementation against fixed reference values."
+  shall "Recompute dashboard metrics from daily observed and simulated discharge series for every legacy Shyft, reverse-run, LSTM and new result; do not display metric columns stored in legacy CSVs. Use hydroeval for NSE, KGE (Gupta et al., 2009), KGE' (Kling et al., 2012), PBIAS and KGE(1/Q), and a characterized port of the old repository's Ruzzante et al. (2025) NSE decomposition. Report the KGE components of Gupta et al. (2009), correlation r, variability ratio alpha and bias ratio beta, as hydroeval returns them. KGE(1/Q) uses 1/(Q + ε), where ε is 0.01 times mean observed flow over the evaluation period, added to both series; retain zero-flow days. Check each implementation against fixed reference values."
   strength must
 
   scenario "pinned hydroeval formulations"
@@ -32,6 +32,12 @@ requirement canonicalMetrics where
     when "KGE(1/Q) is computed with ε equal to 0.01 times mean observed flow"
     then_ "ε is added to observed and simulated flow, no zero-flow day is dropped, and the value matches its fixed reference"
     check deferred "Python tests cover epsilon and zero-flow behavior, but LeanSpec has no Python target"
+
+  scenario "KGE components are reported"
+    given "paired observed and simulated series"
+    when "the metrics are computed"
+    then_ "r, alpha and beta of Gupta et al. (2009) are reported with KGE and recombine to it"
+    check deferred "the components join the metric vocabulary together with their code (D-032)"
 
   scenario "Ruzzante port is characterized"
     given "fixed series and output from the old repository's Ruzzante implementation"
