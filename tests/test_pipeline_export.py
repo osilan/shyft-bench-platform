@@ -485,10 +485,10 @@ class DiagnosticFigureTest(unittest.TestCase):
             self.assertEqual([tick.get_text() for tick in ax.get_xticklabels()],
                              [figures.goal_label(goal) for goal in goals])
         first_panel = axes[0, 0]
-        self.assertEqual(len(first_panel.containers), len(models))
+        self.assertEqual(len(first_panel.containers), len(models) * len(goals))
         self.assertFalse(any(isinstance(collection, figures.plt.matplotlib.collections.PathCollection)
                              for collection in first_panel.collections))
-        marker, _, barlinecols = first_panel.containers[2].lines
+        marker, _, barlinecols = first_panel.containers[2 * len(goals)].lines
         self.assertEqual(marker.get_color(), canon.model_colours()[models[2]])
         self.assertAlmostEqual(marker.get_xdata()[0], 0)
         self.assertAlmostEqual(marker.get_ydata()[0], 205.5)
@@ -502,6 +502,40 @@ class DiagnosticFigureTest(unittest.TestCase):
         limits = canon.load()["sizeLimits"]
         self.assertLessEqual(len(svg), limits["svgBytes"])
         self.assertLessEqual(len(csv), limits["csvBytes"])
+
+    def test_bench_ruzzante_keeps_each_seed_median_in_its_model_slot(self):
+        metrics = figures.canonical_metric_order("ruzzante")
+        model = canon.load()["models"][0]["key"]
+        goal = canon.load()["goals"][0]
+        rows = pd.DataFrame([
+            (model, goal, metric, seed, 4, median - 5, median - 2, median,
+             median + 2, median + 5)
+            for metric in metrics
+            for seed, median in (("seed-1", 10), ("seed-2", 100))
+        ], columns=["model", "goal", "metric", "seed", "n",
+                    "p05", "p25", "p50", "p75", "p95"])
+        real_subplots = figures.plt.subplots
+        captured = {}
+
+        def capture_subplots(*args, **kwargs):
+            captured["fig_axes"] = real_subplots(*args, **kwargs)
+            return captured["fig_axes"]
+
+        with patch.object(figures.plt, "subplots", side_effect=capture_subplots):
+            figures.render_diagnostic(rows, self.specs["ruzzante"])
+        first_panel = captured["fig_axes"][1][0, 0]
+        self.assertEqual(len(first_panel.containers), 2)
+        markers = [container.lines[0] for container in first_panel.containers]
+        self.assertEqual([marker.get_ydata()[0] for marker in markers], [10, 100])
+        np.testing.assert_allclose([marker.get_xdata()[0] for marker in markers],
+                                   [-0.175, 0.175])
+
+    def test_bench_diagnostic_functions_reject_unhandled_views(self):
+        invalid = {**self.specs["ruzzante"], "view": "other"}
+        with self.assertRaisesRegex(ValueError, "unsupported diagnostic view"):
+            figures.diagnostic_table(self.metrics, invalid)
+        with self.assertRaisesRegex(ValueError, "unsupported diagnostic view"):
+            figures.render_diagnostic(pd.DataFrame({"metric": ["test"]}), invalid)
 
     def test_bench_dashboard_diagnostic_views_keep_metric_variant_and_seed_rows(self):
         for view, spec in self.specs.items():
@@ -527,10 +561,6 @@ class DiagnosticFigureTest(unittest.TestCase):
                 self.assertTrue(rows["seed"].isna().any())
                 self.assertEqual(set(rows["model"]), {"ptgsk", "lstm"})
                 self.assertEqual(set(rows["goal"]), {"kge", "nse"})
-                if view not in {"low-flow", "kge-compass", "ruzzante"}:
-                    for column in ("forcing", "direction", "pcorr", "optimizer"):
-                        self.assertEqual(set(rows[column]), {spec[column]})
-                    self.assertEqual(set(rows["forcing"]), {spec["forcing"]})
                 csv = figures.table_csv(rows)
                 if view == "low-flow":
                     self.assertNotIn("station", rows.columns)
@@ -546,10 +576,6 @@ class DiagnosticFigureTest(unittest.TestCase):
                         self.assertEqual(csv.decode().splitlines()[0].split(","),
                                          rows.columns.tolist())
                         self.assertNotIn("station", rows.columns)
-                    else:
-                        self.assertTrue(set(self.required_metrics[view]).issubset(
-                            {line.split(",")[10] for line in csv.decode().splitlines()[1:]}))
-                        self.assertTrue(csv.startswith(b"experiment_id,"))
                 self.assertIn(b"seed-11", csv)
                 self.assertIn(b"seed-22", csv)
 
@@ -562,9 +588,7 @@ class DiagnosticFigureTest(unittest.TestCase):
                 self.assertEqual(first, figures.render_diagnostic(rows, spec))
                 self.assertIn(b"<svg", first)
                 svg = first.decode()
-                expected_model_labels = (("PTGSK", "LSTM")
-                                         if view in {"low-flow", "kge-compass", "ruzzante"}
-                                         else ("ptgsk", "lstm"))
+                expected_model_labels = ("PTGSK", "LSTM")
                 self.assertIn(expected_model_labels[0], svg)
                 self.assertIn(expected_model_labels[1], svg)
                 labels = {
