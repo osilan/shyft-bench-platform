@@ -127,6 +127,7 @@ inductive MetricFamily where
 inductive MetricFormulation where
   | nse
   | kgeGupta2009
+  | kgeGuptaR | kgeGuptaAlpha | kgeGuptaBeta
   | kgeKling2012
   | pbias
   | kgeInverseFlow
@@ -158,13 +159,15 @@ inductive MetricOptimum where
 
 inductive Metric where
   | nse | kgeGupta | kgeKling | pbias | kgeInverseFlow
+  -- The components of KGE (Gupta et al., 2009): correlation, variability ratio, bias ratio (D-032).
+  | kgeR | kgeAlpha | kgeBeta
   | seasonalNse | seasonalR | seasonalAlpha | seasonalVarianceShare
   | interannualNse | interannualR | interannualAlpha | interannualVarianceShare
   | irregularNse | irregularR | irregularAlpha | irregularVarianceShare
   deriving Repr, DecidableEq
 
 def Metric.all : List Metric :=
-  [.nse, .kgeGupta, .kgeKling, .pbias, .kgeInverseFlow,
+  [.nse, .kgeGupta, .kgeR, .kgeAlpha, .kgeBeta, .kgeKling, .pbias, .kgeInverseFlow,
    .seasonalNse, .seasonalR, .seasonalAlpha, .seasonalVarianceShare,
    .interannualNse, .interannualR, .interannualAlpha, .interannualVarianceShare,
    .irregularNse, .irregularR, .irregularAlpha, .irregularVarianceShare]
@@ -172,6 +175,7 @@ def Metric.all : List Metric :=
 def Metric.key : Metric → String
   | .nse => "nse" | .kgeGupta => "kge_gupta_2009" | .kgeKling => "kge_kling_2012"
   | .pbias => "pbias" | .kgeInverseFlow => "kge_1_over_q"
+  | .kgeR => "kge_r" | .kgeAlpha => "kge_alpha" | .kgeBeta => "kge_beta"
   | .seasonalNse => "nse_seasonal" | .seasonalR => "r_seasonal"
   | .seasonalAlpha => "alpha_seasonal" | .seasonalVarianceShare => "variance_share_seasonal"
   | .interannualNse => "nse_interannual" | .interannualR => "r_interannual"
@@ -182,6 +186,7 @@ def Metric.key : Metric → String
 def Metric.family : Metric → MetricFamily
   | .nse | .kgeGupta | .kgeKling | .kgeInverseFlow => .efficiency
   | .pbias => .bias
+  | .kgeR | .kgeAlpha | .kgeBeta
   | .seasonalNse | .seasonalR | .seasonalAlpha | .seasonalVarianceShare
   | .interannualNse | .interannualR | .interannualAlpha | .interannualVarianceShare
   | .irregularNse | .irregularR | .irregularAlpha | .irregularVarianceShare => .decomposition
@@ -189,6 +194,7 @@ def Metric.family : Metric → MetricFamily
 def Metric.formulation : Metric → MetricFormulation
   | .nse => .nse | .kgeGupta => .kgeGupta2009 | .kgeKling => .kgeKling2012
   | .pbias => .pbias | .kgeInverseFlow => .kgeInverseFlow
+  | .kgeR => .kgeGuptaR | .kgeAlpha => .kgeGuptaAlpha | .kgeBeta => .kgeGuptaBeta
   | .seasonalNse => .seasonalNse | .seasonalR => .seasonalR
   | .seasonalAlpha => .seasonalAlpha | .seasonalVarianceShare => .seasonalVarianceShare
   | .interannualNse => .interannualNse | .interannualR => .interannualR
@@ -197,23 +203,24 @@ def Metric.formulation : Metric → MetricFormulation
   | .irregularAlpha => .irregularAlpha | .irregularVarianceShare => .irregularVarianceShare
 
 def Metric.library : Metric → MetricLibrary
-  | .nse | .kgeGupta | .kgeKling | .pbias | .kgeInverseFlow => .hydroeval
+  | .nse | .kgeGupta | .kgeKling | .pbias | .kgeInverseFlow
+  | .kgeR | .kgeAlpha | .kgeBeta => .hydroeval
   | _ => .project
 
 def Metric.range : Metric → MetricRange
   | .nse | .kgeGupta | .kgeKling | .kgeInverseFlow
   | .seasonalNse | .interannualNse | .irregularNse => .atMostOne
-  | .seasonalR | .interannualR | .irregularR => .betweenMinusOneAndOne
-  | .seasonalAlpha | .interannualAlpha | .irregularAlpha => .nonnegative
+  | .kgeR | .seasonalR | .interannualR | .irregularR => .betweenMinusOneAndOne
+  | .kgeAlpha | .kgeBeta | .seasonalAlpha | .interannualAlpha | .irregularAlpha => .nonnegative
   | .seasonalVarianceShare | .interannualVarianceShare | .irregularVarianceShare => .unitInterval
   | .pbias => .real
 
 def Metric.optimum : Metric → MetricOptimum
   | .nse | .kgeGupta | .kgeKling | .kgeInverseFlow
-  | .seasonalNse | .seasonalR | .interannualNse | .interannualR
+  | .kgeR | .seasonalNse | .seasonalR | .interannualNse | .interannualR
   | .irregularNse | .irregularR => .higher
   | .pbias => .targetZero
-  | .seasonalAlpha | .interannualAlpha | .irregularAlpha => .targetOne
+  | .kgeAlpha | .kgeBeta | .seasonalAlpha | .interannualAlpha | .irregularAlpha => .targetOne
   | .seasonalVarianceShare | .interannualVarianceShare | .irregularVarianceShare => .none
 
 /-- Hydrological regime classes from `calc_hydrological_regime.r`, by the months of
@@ -311,6 +318,10 @@ def Forcing.covers (f : Forcing) (p : Period) : Bool :=
 #guard Metric.all.all fun metric => metric.key != ""
 #guard (Metric.all.filter (·.family == .efficiency)).all (·.optimum == .higher)
 #guard Metric.pbias.optimum == .targetZero
+#guard [Metric.kgeR, .kgeAlpha, .kgeBeta].map (·.key) == ["kge_r", "kge_alpha", "kge_beta"]
+#guard Metric.kgeR.optimum == .higher && Metric.kgeAlpha.optimum == .targetOne &&
+  Metric.kgeBeta.optimum == .targetOne
+#guard [Metric.kgeR, .kgeAlpha, .kgeBeta].all (·.library == .hydroeval)
 #guard Metric.seasonalNse.optimum == .higher &&
   Metric.interannualNse.optimum == .higher && Metric.irregularNse.optimum == .higher
 #guard Metric.seasonalR.optimum == .higher &&

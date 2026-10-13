@@ -37,7 +37,7 @@ requirement canonicalMetrics where
     given "paired observed and simulated series"
     when "the metrics are computed"
     then_ "r, alpha and beta of Gupta et al. (2009) are reported with KGE and recombine to it"
-    check deferred "the components join the metric vocabulary together with their code (D-032)"
+    check deferred "Python tests check r, alpha and beta against plain formulas and their recombination to KGE, but LeanSpec has no Python target"
 
   scenario "Ruzzante port is characterized"
     given "fixed series and output from the old repository's Ruzzante implementation"
