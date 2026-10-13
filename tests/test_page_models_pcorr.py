@@ -10,7 +10,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from pipeline import canon, page_models_pcorr as page, render, table  # noqa: E402
+from pipeline import canon, maps, page_models_pcorr as page, render, table  # noqa: E402
 from pipeline.figures import table_csv  # noqa: E402
 
 STATIONS = [s["id"] for s in canon.load()["stations"]]
@@ -145,7 +145,7 @@ class MapTest(unittest.TestCase):
         override = {("rpmstk", stations[5], "kge_gupta_2009", False): np.nan}
         frame = page.map_table(metrics_table(stations=stations, override=override), spec_for("pcorr-map"))
         self.assertEqual(len(frame), 19)
-        location = page.load_attributes()
+        location = maps.load_attributes()
         for row in frame.itertuples():
             self.assertEqual((row.lat, row.lon), location[row.station])
         svg, axes = captured_axes(page.render_pcorr_map, frame, spec_for("pcorr-map"))
