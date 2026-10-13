@@ -10,15 +10,12 @@ All figures use the Shyft runs calibrated to KGE, as in the talk. The cohort of 
 catchments finite for every model and both pcorr settings, so switching the pcorr selector
 compares the same catchments. Catchments are unlabelled (D-032); seeds are never pooled.
 """
-import csv
-import json
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.colors import TwoSlopeNorm
 
-from . import canon
+from . import canon, maps
 from .figures import canonical_model_order, save_svg
 from .summaries import PERIOD_KIND, matched_cohort, summary_percents
 
@@ -38,8 +35,6 @@ COMPARE_PANELS = (CDF_PANELS[0], CDF_PANELS[3])
 REGIME_MODELS = ("ptstk", "ptsthbv", "rpmstk")
 MAP_MODEL = "rpmstk"
 SEED_STYLES = ("-", "--", ":", "-.")
-ATTRIBUTES = canon.ROOT / "data/catchments/attributes.csv"
-OUTLINE = canon.ROOT / "data/catchments/norway_outline.geojson"
 
 
 def _check_metrics(keys) -> None:
@@ -230,19 +225,9 @@ def render_pcorr_by_regime(frame: pd.DataFrame, spec: dict) -> bytes:
 
 # ── map of the KGE gain ───────────────────────────────────────────────────────
 
-def load_attributes() -> dict[str, tuple[float, float]]:
-    with ATTRIBUTES.open(newline="") as f:
-        return {r["station"]: (float(r["lat"]), float(r["lon"])) for r in csv.DictReader(f)}
-
-
-def load_outline() -> list[list[tuple[float, float]]]:
-    geometry = json.loads(OUTLINE.read_text())["features"][0]["geometry"]
-    return [[tuple(p) for p in polygon[0]] for polygon in geometry["coordinates"]]
-
-
 def map_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
     paired = _paired(table, spec, (MAP_MODEL,))
-    location = load_attributes()
+    location = maps.load_attributes()
     missing = sorted(set(paired["station"]) - set(location))
     if missing:
         raise ValueError(f"stations without pinned attributes: {missing}")
@@ -265,9 +250,7 @@ def render_pcorr_map(frame: pd.DataFrame, spec: dict) -> bytes:
     if frame.empty:
         raise ValueError("pcorr-map view has no paired catchments")
     fig, ax = plt.subplots(figsize=(5.4, 7.6))
-    for polygon in load_outline():
-        xs, ys = zip(*polygon)
-        ax.fill(xs, ys, color="#e8e8e8", edgecolor="#9a9a9a", linewidth=0.4, zorder=1)
+    maps.draw_outline(ax)
     limit = colour_limit(frame["kge_gain"].to_numpy(dtype=float))
     norm = TwoSlopeNorm(vmin=-limit, vcenter=0.0, vmax=limit)
     points = ax.scatter(frame["lon"], frame["lat"], c=frame["kge_gain"], cmap="RdBu", norm=norm,
@@ -275,8 +258,6 @@ def render_pcorr_map(frame: pd.DataFrame, spec: dict) -> bytes:
     bar = fig.colorbar(points, ax=ax, orientation="horizontal", fraction=0.04, pad=0.03,
                        extend="both")
     bar.set_label(f"KGE gain from precipitation correction, {MAP_MODEL.upper()}")
-    ax.set_aspect(1 / np.cos(np.radians(65)))
-    ax.set_axis_off()
     better = int((frame["kge_gain"] > 0).sum())
     beyond = int((frame["kge_gain"].abs() > limit).sum())
     ax.set_title(f"{MAP_MODEL.upper()}, calibrated to {GOAL.upper()}: pcorr improves KGE in "
