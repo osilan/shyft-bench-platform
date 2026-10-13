@@ -120,6 +120,15 @@ class RegimeTest(unittest.TestCase):
         self.assertAlmostEqual(gain["p50"], 0.05, msg="gain is KGE on minus KGE off")
         self.assertNotIn("station", result.columns)
 
+    def test_bench_dashboard_pcorr_by_regime_uses_catchments_complete_for_all_three_stacks(self):
+        stations = STATIONS[:30]
+        mountain = [s for s in stations if REGIME[s] == "Mountain"]
+        gap = {("ptsthbv", mountain[0], "pbias", True): np.nan}
+        result = page.regime_table(metrics_table(stations=stations, override=gap), spec_for("pcorr-by-regime"))
+        rows = result[result["regime"] == "Mountain"]
+        self.assertEqual(set(rows["n_catchments"]), {len(mountain) - 1}, "dropped for every stack")
+        self.assertEqual(set(rows["n_pairs"]), {3 * (len(mountain) - 1)}, "each catchment weighs the same")
+
     def test_bench_dashboard_pcorr_by_regime_refuses_to_pool_seeds(self):
         with self.assertRaises(ValueError):
             page.regime_table(metrics_table(seed="v00"), spec_for("pcorr-by-regime"))
