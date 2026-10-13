@@ -62,12 +62,12 @@ requirement catchmentAttributes where
   scenario "attributes cover the regime table"
     when "the package builds"
     then_ "every station of the frozen regime table has exactly one attribute row, and the table and generator hashes match the pinned values"
-    check deferred "the attributes table is not generated yet"
+    check executable
 
   scenario "outline is pinned"
     when "the package builds"
     then_ "the outline file's SHA-256 and licence match the values recorded in Lean"
-    check deferred "the outline is not pinned yet"
+    check executable
 
 requirement legacyReadOnly where
   id "bench.legacy.read-only"
