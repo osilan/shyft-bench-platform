@@ -43,12 +43,6 @@ requirement matchedComparison where
     then_ "they differ in the chosen axis and agree on every other axis"
     check executable
 
-  scenario "forward run against reverse seeds"
-    given "the unseeded forward seNorge RPMSTK result and the reverse result with five seeds"
-    when "they are compared along direction"
-    then_ "only catchments present in both directions are compared, the reverse seeds are shown as the envelope of their per-seed results and never pooled, and the figure states that the two validation periods differ (D-024)"
-    check deferred "the reverse run is not in the catalogue"
-
 requirement snowCohort where
   id "bench.cohort.snow"
   shall "Select the FSM2 cohort as the mountain and inland stations of the frozen regime table produced by calc_hydrological_regime.r, pinned by SHA-256, without re-classifying other catchments."

@@ -182,17 +182,15 @@ def goalFunctionsPage : Page where
     [onPage .goalGeneralism (some .forward) (some p) (some m),
      onPage .biasVariability (some .forward) (some p) (some m)]
 
-/-- The unseeded forward seNorge RPMSTK run against the reverse run's five seeds, pcorr on. -/
+/-- Direction and equifinality for RPMSTK. Empty until the reverse run is collected: its figures,
+and how the unseeded forward run is compared with the reverse seeds, follow a later decision
+(D-032). -/
 def robustnessPage : Page where
   key := "robustness"
   title := "Robustness: direction and equifinality"
   status := .planned
-  selectors := [.goal]
-  figures := (Goal.all.flatMap fun g =>
-    [onPage .directionCompare none (some true) (some (.shyft .rpmstk)) (some g),
-     onPage .directionMap none (some true) (some (.shyft .rpmstk)) (some g)]) ++
-    -- One figure: a box of the reverse seeds' spread per goal.
-    [onPage .seedSpread none (some true) (some (.shyft .rpmstk))]
+  selectors := []
+  figures := []
 
 /-- Empty until the LSTM runs are in the catalogue. -/
 def lstmPage : Page where
@@ -226,11 +224,7 @@ def maxAllPageFigures : Nat := 64
 #guard legacyModels == (Stack.all.take 5).map .shyft
 #guard goalFunctionsPage.figures.length == legacyModels.length * 2 * 2
 #guard goalFunctionsPage.figures.all fun f => f.model.isSome && f.pcorr.isSome
-#guard robustnessPage.figures.all fun f =>
-  f.model == some (.shyft .rpmstk) && f.pcorr == some true &&
-    (f.goal.isSome || f.view == .seedSpread)
-#guard robustnessPage.figures.length == 2 * Goal.all.length + 1
-#guard (Goal.all.all fun g => robustnessPage.figures.any (·.goal == some g))
+#guard robustnessPage.figures.isEmpty && robustnessPage.status == .planned
 #guard lstmPage.figures.isEmpty && lstmPage.status == .planned
 
 /-- The export check: published figure ids equal the declared ids, none missing, none extra. -/

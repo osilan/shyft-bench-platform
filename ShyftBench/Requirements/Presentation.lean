@@ -123,7 +123,7 @@ requirement dashboard where
     given "forward and reverse results of one model, the reverse with several seeds"
     when "they are drawn in one figure"
     then_ "both use the model's canonical colour, forward solid and reverse dashed, with seed spread as the envelope of the per-seed curves"
-    check deferred "the reverse run is not in the catalogue"
+    check deferred "no figure draws both directions yet: the reverse run's results are not collected (D-032)"
 
   scenario "maps use pinned locations"
     given "the catchment attributes and Norway outline pinned in Lean"
