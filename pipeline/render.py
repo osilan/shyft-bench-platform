@@ -4,7 +4,7 @@ Each page has its own module; the build renders any declared figure by its view 
 """
 import pandas as pd
 
-from . import figures, page_models_pcorr
+from . import figures, page_goal_functions, page_models_pcorr
 
 RENDERERS = {
     "scoreboard": (lambda table, spec: figures.scoreboard_table(table, spec["pcorr"]),
@@ -13,6 +13,8 @@ RENDERERS = {
     "pcorr-compare": (page_models_pcorr.compare_table, page_models_pcorr.render_pcorr_compare),
     "pcorr-by-regime": (page_models_pcorr.regime_table, page_models_pcorr.render_pcorr_by_regime),
     "pcorr-map": (page_models_pcorr.map_table, page_models_pcorr.render_pcorr_map),
+    "goal-generalism": (page_goal_functions.generalism_table, page_goal_functions.render_generalism),
+    "bias-variability": (page_goal_functions.components_table, page_goal_functions.render_components),
     # Retired by the switch to the pages (D-032, #64).
     "kge-compass": (figures.diagnostic_table, figures.render_diagnostic),
     "low-flow": (figures.diagnostic_table, figures.render_diagnostic),
