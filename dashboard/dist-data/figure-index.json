@@ -1,6 +1,26 @@
 {
   "figures": [
     {
+      "csv": "tables/regime-map-seNorge-bobyqa.csv",
+      "direction": null,
+      "forcing": "seNorge",
+      "id": "regime-map-seNorge-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": null,
+      "svg": "figures/regime-map-seNorge-bobyqa.svg",
+      "view": "regime-map"
+    },
+    {
+      "csv": "tables/variance-by-regime-seNorge-bobyqa.csv",
+      "direction": null,
+      "forcing": "seNorge",
+      "id": "variance-by-regime-seNorge-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": null,
+      "svg": "figures/variance-by-regime-seNorge-bobyqa.svg",
+      "view": "variance-by-regime"
+    },
+    {
       "csv": "tables/scoreboard-seNorge-dir-forward-pcorr-off-bobyqa.csv",
       "direction": "forward",
       "forcing": "seNorge",
@@ -41,64 +61,234 @@
       "view": "cdf"
     },
     {
-      "csv": "tables/kge-compass-seNorge-dir-forward-pcorr-off-bobyqa.csv",
+      "csv": "tables/pcorr-compare-seNorge-dir-forward-bobyqa.csv",
       "direction": "forward",
       "forcing": "seNorge",
-      "id": "kge-compass-seNorge-dir-forward-pcorr-off-bobyqa",
+      "id": "pcorr-compare-seNorge-dir-forward-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": null,
+      "svg": "figures/pcorr-compare-seNorge-dir-forward-bobyqa.svg",
+      "view": "pcorr-compare"
+    },
+    {
+      "csv": "tables/pcorr-by-regime-seNorge-dir-forward-bobyqa.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "pcorr-by-regime-seNorge-dir-forward-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": null,
+      "svg": "figures/pcorr-by-regime-seNorge-dir-forward-bobyqa.svg",
+      "view": "pcorr-by-regime"
+    },
+    {
+      "csv": "tables/pcorr-map-seNorge-dir-forward-bobyqa.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "pcorr-map-seNorge-dir-forward-bobyqa",
+      "optimizer": "bobyqa",
+      "pcorr": null,
+      "svg": "figures/pcorr-map-seNorge-dir-forward-bobyqa.svg",
+      "view": "pcorr-map"
+    },
+    {
+      "csv": "tables/goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-ptstk.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-ptstk",
       "optimizer": "bobyqa",
       "pcorr": false,
-      "svg": "figures/kge-compass-seNorge-dir-forward-pcorr-off-bobyqa.svg",
-      "view": "kge-compass"
+      "svg": "figures/goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-ptstk.svg",
+      "view": "goal-generalism"
     },
     {
-      "csv": "tables/kge-compass-seNorge-dir-forward-pcorr-on-bobyqa.csv",
+      "csv": "tables/bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-ptstk.csv",
       "direction": "forward",
       "forcing": "seNorge",
-      "id": "kge-compass-seNorge-dir-forward-pcorr-on-bobyqa",
-      "optimizer": "bobyqa",
-      "pcorr": true,
-      "svg": "figures/kge-compass-seNorge-dir-forward-pcorr-on-bobyqa.svg",
-      "view": "kge-compass"
-    },
-    {
-      "csv": "tables/low-flow-seNorge-dir-forward-pcorr-off-bobyqa.csv",
-      "direction": "forward",
-      "forcing": "seNorge",
-      "id": "low-flow-seNorge-dir-forward-pcorr-off-bobyqa",
+      "id": "bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-ptstk",
       "optimizer": "bobyqa",
       "pcorr": false,
-      "svg": "figures/low-flow-seNorge-dir-forward-pcorr-off-bobyqa.svg",
-      "view": "low-flow"
+      "svg": "figures/bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-ptstk.svg",
+      "view": "bias-variability"
     },
     {
-      "csv": "tables/low-flow-seNorge-dir-forward-pcorr-on-bobyqa.csv",
+      "csv": "tables/goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-ptstk.csv",
       "direction": "forward",
       "forcing": "seNorge",
-      "id": "low-flow-seNorge-dir-forward-pcorr-on-bobyqa",
+      "id": "goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-ptstk",
       "optimizer": "bobyqa",
       "pcorr": true,
-      "svg": "figures/low-flow-seNorge-dir-forward-pcorr-on-bobyqa.svg",
-      "view": "low-flow"
+      "svg": "figures/goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-ptstk.svg",
+      "view": "goal-generalism"
     },
     {
-      "csv": "tables/ruzzante-seNorge-dir-forward-pcorr-off-bobyqa.csv",
+      "csv": "tables/bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-ptstk.csv",
       "direction": "forward",
       "forcing": "seNorge",
-      "id": "ruzzante-seNorge-dir-forward-pcorr-off-bobyqa",
+      "id": "bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-ptstk",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-ptstk.svg",
+      "view": "bias-variability"
+    },
+    {
+      "csv": "tables/goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-rpmstk.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-rpmstk",
       "optimizer": "bobyqa",
       "pcorr": false,
-      "svg": "figures/ruzzante-seNorge-dir-forward-pcorr-off-bobyqa.svg",
-      "view": "ruzzante"
+      "svg": "figures/goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-rpmstk.svg",
+      "view": "goal-generalism"
     },
     {
-      "csv": "tables/ruzzante-seNorge-dir-forward-pcorr-on-bobyqa.csv",
+      "csv": "tables/bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-rpmstk.csv",
       "direction": "forward",
       "forcing": "seNorge",
-      "id": "ruzzante-seNorge-dir-forward-pcorr-on-bobyqa",
+      "id": "bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-rpmstk",
+      "optimizer": "bobyqa",
+      "pcorr": false,
+      "svg": "figures/bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-rpmstk.svg",
+      "view": "bias-variability"
+    },
+    {
+      "csv": "tables/goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-rpmstk.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-rpmstk",
       "optimizer": "bobyqa",
       "pcorr": true,
-      "svg": "figures/ruzzante-seNorge-dir-forward-pcorr-on-bobyqa.svg",
-      "view": "ruzzante"
+      "svg": "figures/goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-rpmstk.svg",
+      "view": "goal-generalism"
+    },
+    {
+      "csv": "tables/bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-rpmstk.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-rpmstk",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-rpmstk.svg",
+      "view": "bias-variability"
+    },
+    {
+      "csv": "tables/goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-ptgsk.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-ptgsk",
+      "optimizer": "bobyqa",
+      "pcorr": false,
+      "svg": "figures/goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-ptgsk.svg",
+      "view": "goal-generalism"
+    },
+    {
+      "csv": "tables/bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-ptgsk.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-ptgsk",
+      "optimizer": "bobyqa",
+      "pcorr": false,
+      "svg": "figures/bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-ptgsk.svg",
+      "view": "bias-variability"
+    },
+    {
+      "csv": "tables/goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-ptgsk.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-ptgsk",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-ptgsk.svg",
+      "view": "goal-generalism"
+    },
+    {
+      "csv": "tables/bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-ptgsk.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-ptgsk",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-ptgsk.svg",
+      "view": "bias-variability"
+    },
+    {
+      "csv": "tables/goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-rpmgsk.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-rpmgsk",
+      "optimizer": "bobyqa",
+      "pcorr": false,
+      "svg": "figures/goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-rpmgsk.svg",
+      "view": "goal-generalism"
+    },
+    {
+      "csv": "tables/bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-rpmgsk.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-rpmgsk",
+      "optimizer": "bobyqa",
+      "pcorr": false,
+      "svg": "figures/bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-rpmgsk.svg",
+      "view": "bias-variability"
+    },
+    {
+      "csv": "tables/goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-rpmgsk.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-rpmgsk",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-rpmgsk.svg",
+      "view": "goal-generalism"
+    },
+    {
+      "csv": "tables/bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-rpmgsk.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-rpmgsk",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-rpmgsk.svg",
+      "view": "bias-variability"
+    },
+    {
+      "csv": "tables/goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-ptsthbv.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-ptsthbv",
+      "optimizer": "bobyqa",
+      "pcorr": false,
+      "svg": "figures/goal-generalism-seNorge-dir-forward-pcorr-off-bobyqa-model-ptsthbv.svg",
+      "view": "goal-generalism"
+    },
+    {
+      "csv": "tables/bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-ptsthbv.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-ptsthbv",
+      "optimizer": "bobyqa",
+      "pcorr": false,
+      "svg": "figures/bias-variability-seNorge-dir-forward-pcorr-off-bobyqa-model-ptsthbv.svg",
+      "view": "bias-variability"
+    },
+    {
+      "csv": "tables/goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-ptsthbv.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-ptsthbv",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/goal-generalism-seNorge-dir-forward-pcorr-on-bobyqa-model-ptsthbv.svg",
+      "view": "goal-generalism"
+    },
+    {
+      "csv": "tables/bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-ptsthbv.csv",
+      "direction": "forward",
+      "forcing": "seNorge",
+      "id": "bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-ptsthbv",
+      "optimizer": "bobyqa",
+      "pcorr": true,
+      "svg": "figures/bias-variability-seNorge-dir-forward-pcorr-on-bobyqa-model-ptsthbv.svg",
+      "view": "bias-variability"
     }
   ]
 }

@@ -39,7 +39,8 @@ def catalogue_entry(experiment_id: str) -> dict:
 
 
 def declared_figures(scope: str = "grid") -> list[dict]:
-    """`grid` is the whole declared grid; `first-slice` and `published` are Lean-declared subsets."""
+    """`grid` is the whole declared grid; `first-slice` its first-slice subset; `published` the
+    release set, the figures of the published pages (D-032), looked up among the page figures."""
     grid = load()["figureGrid"]
     if scope == "grid":
         return grid
@@ -47,7 +48,7 @@ def declared_figures(scope: str = "grid") -> list[dict]:
         ids = set(load()["firstSlice"])
         return [f for f in grid if f["id"] in ids]
     if scope == "published":
-        by_id = {f["id"]: f for f in grid}
+        by_id = {f["id"]: f for f in load()["pageFigures"]}
         return [by_id[i] for i in load()["published"]]
     raise ValueError(scope)
 

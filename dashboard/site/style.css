@@ -76,10 +76,13 @@ figure {
   border: 1px solid #e1e6eb;
 }
 
+/* Wide figures fill the column; a tall figure (a map) is scaled to fit the window, centred. */
 figure img {
   display: block;
   width: 100%;
   height: auto;
+  max-height: 90vh;
+  object-fit: contain;
 }
 
 figcaption {

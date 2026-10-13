@@ -1,0 +1,16 @@
+regime,quantity,models,n_catchments,n_pairs,p05,p25,p50,p75,p95
+Mountain,pbias_off,ptstk+ptsthbv+rpmstk,31,93,1.472971,22.710303,32.485874,46.055038,67.489088
+Mountain,pbias_on,ptstk+ptsthbv+rpmstk,31,93,-13.795364,-2.568783,4.559688,11.822014,28.919463
+Mountain,kge_gain,ptstk+ptsthbv+rpmstk,31,93,-0.007742,0.094626,0.209807,0.399494,0.689855
+Inland,pbias_off,ptstk+ptsthbv+rpmstk,25,75,-4.527607,7.894377,24.553874,36.290951,52.734133
+Inland,pbias_on,ptstk+ptsthbv+rpmstk,25,75,-17.726198,-5.952991,3.775876,8.760388,20.072740
+Inland,kge_gain,ptstk+ptsthbv+rpmstk,25,75,-0.056572,0.011442,0.144071,0.249935,0.454442
+Atlantic,pbias_off,ptstk+ptsthbv+rpmstk,16,48,-21.021738,3.349898,18.246435,36.365006,55.549834
+Atlantic,pbias_on,ptstk+ptsthbv+rpmstk,16,48,-16.281294,-10.152027,-3.070245,1.758437,14.668964
+Atlantic,kge_gain,ptstk+ptsthbv+rpmstk,16,48,-0.017157,0.064535,0.164178,0.339296,0.545953
+Baltic,pbias_off,ptstk+ptsthbv+rpmstk,10,30,-12.081056,9.552247,18.584601,39.674752,52.204575
+Baltic,pbias_on,ptstk+ptsthbv+rpmstk,10,30,-27.665717,-9.989371,0.017508,2.152821,5.825215
+Baltic,kge_gain,ptstk+ptsthbv+rpmstk,10,30,-0.025183,0.052894,0.135116,0.358175,0.460319
+Transition,pbias_off,ptstk+ptsthbv+rpmstk,11,33,-71.916275,-4.818950,8.922692,28.544364,48.845697
+Transition,pbias_on,ptstk+ptsthbv+rpmstk,11,33,-8.102679,-3.335142,5.513338,11.276408,13.883356
+Transition,kge_gain,ptstk+ptsthbv+rpmstk,11,33,-0.051128,-0.009596,0.068595,0.320150,1.205931

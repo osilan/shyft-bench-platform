@@ -11,8 +11,8 @@ one appears. A figure has exactly one forcing, so no figure compares across forc
 namespace ShyftBench
 
 inductive FigureView where
-  | scoreboard | cdf | modelPair | validationDrop | pcorrEffect | kgeCompass | ruzzante
-  | lowFlow | directionCompare | lstmVsShyft | seedSpread | map | catchmentDetail
+  | scoreboard | cdf | modelPair | validationDrop | pcorrEffect
+  | directionCompare | lstmVsShyft | seedSpread | map | catchmentDetail
   -- Page views (D-032).
   | regimeMap | varianceByRegime | pcorrCompare | pcorrByRegime | pcorrMap
   | goalGeneralism | biasVariability | directionMap
@@ -21,7 +21,6 @@ inductive FigureView where
 def FigureView.key : FigureView → String
   | .scoreboard => "scoreboard" | .cdf => "cdf" | .modelPair => "model-pair"
   | .validationDrop => "validation-drop" | .pcorrEffect => "pcorr-effect"
-  | .kgeCompass => "kge-compass" | .ruzzante => "ruzzante" | .lowFlow => "low-flow"
   | .directionCompare => "direction-compare" | .lstmVsShyft => "lstm-vs-shyft"
   | .seedSpread => "seed-spread" | .map => "map" | .catchmentDetail => "catchment-detail"
   | .regimeMap => "regime-map" | .varianceByRegime => "variance-by-regime"
@@ -65,7 +64,8 @@ def firstSlice : List FigureSpec :=
   [fig .scoreboard .seNorge2018 (some .forward) (some false),
    fig .scoreboard .seNorge2018 (some .forward) (some true)]
 
-/-- Aggregate figures: 35, all seNorge2018. AIFS is future work (D-023) and has none. -/
+/-- Aggregate figures: 29, all seNorge2018 (the D-023 grid less the views D-032 retired). AIFS is
+future work (D-023) and has none. -/
 def aggregateFigures : List FigureSpec :=
   let s := Forcing.seNorge2018
   firstSlice ++
@@ -78,24 +78,12 @@ def aggregateFigures : List FigureSpec :=
    fig .validationDrop s (some .reverse) (some false), fig .validationDrop s (some .reverse) (some true),
    fig .pcorrEffect s (some .forward) none, fig .pcorrEffect s (some .forward) none .sceua,
    fig .pcorrEffect s (some .reverse) none,
-   fig .kgeCompass s (some .forward) (some false), fig .kgeCompass s (some .forward) (some true),
-   fig .ruzzante s (some .forward) (some false), fig .ruzzante s (some .forward) (some true),
-   fig .lowFlow s (some .forward) (some false), fig .lowFlow s (some .forward) (some true),
    fig .directionCompare s none (some false), fig .directionCompare s none (some true),
    fig .lstmVsShyft s (some .forward) (some false), fig .lstmVsShyft s (some .forward) (some true),
    fig .lstmVsShyft s (some .reverse) (some false), fig .lstmVsShyft s (some .reverse) (some true),
    fig .seedSpread s (some .forward) (some false), fig .seedSpread s (some .forward) (some true),
    fig .seedSpread s (some .reverse) (some false), fig .seedSpread s (some .reverse) (some true),
    fig .map s (some .forward) (some false), fig .map s (some .forward) (some true)]
-
-/-- The first published export: five forward legacy views, each with both pcorr settings. -/
-def published : List FigureSpec :=
-  let s := Forcing.seNorge2018
-  [fig .scoreboard s (some .forward) (some false), fig .scoreboard s (some .forward) (some true),
-   fig .cdf s (some .forward) (some false), fig .cdf s (some .forward) (some true),
-   fig .kgeCompass s (some .forward) (some false), fig .kgeCompass s (some .forward) (some true),
-   fig .lowFlow s (some .forward) (some false), fig .lowFlow s (some .forward) (some true),
-   fig .ruzzante s (some .forward) (some false), fig .ruzzante s (some .forward) (some true)]
 
 /-- Detail catchments are the 5 best and 5 worst by KGE (Gupta 2009, `Metric.kgeGupta`) for rpmstk with pcorr on (D-023). The
 stations come from computed metrics, so they are listed here once the metrics exist. -/
@@ -115,17 +103,16 @@ def maxSvgBytes : Nat := 2 * 1024 * 1024
 def maxCsvBytes : Nat := 1024 * 1024
 def maxExportBytes : Nat := 15 * 1024 * 1024
 
-/-- Percentiles at which published distributions are summarised (D-031): CDF curves use all
-nineteen, boxes the five in `boxPercents` (whiskers at 5 and 95). -/
-def cdfPercents : List Nat := [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95]
+/-- Percentiles at which published boxes are drawn (D-031): whiskers at 5 and 95. CDF curves show
+every matched catchment (D-032). -/
 def boxPercents : List Nat := [5, 25, 50, 75, 95]
 
 /-! ## Pages (D-032)
 
 The site is organised by research question. Each page lists its figures explicitly, one per
 selector value, so the export check can compare ids. A `planned` page is declared but not
-published until its data are in the catalogue. `published` above stays the release set until the
-build that renders the published pages sets it to `pagesPublished` (D-032). -/
+published until its data are in the catalogue. The release set is the figures of the published
+pages (D-032). -/
 
 inductive Selector where
   | pcorr | model | goal
@@ -209,6 +196,9 @@ def pageFigures : List FigureSpec := pages.flatMap (·.figures)
 def pagesPublished : List FigureSpec :=
   (pages.filter (·.status == .published)).flatMap (·.figures)
 
+/-- The release set: what the site publishes and the export check compares against (D-030, D-032). -/
+def published : List FigureSpec := pagesPublished
+
 def maxPageFigures : Nat := 32
 /-- All pages together, published or planned (D-032). -/
 def maxAllPageFigures : Nat := 64
@@ -231,22 +221,18 @@ def maxAllPageFigures : Nat := 64
 def gridMatches (declared published : List String) : Bool :=
   declared.all published.contains && published.all declared.contains
 
-#guard aggregateFigures.length == 35
+#guard aggregateFigures.length == 29
 #guard detailBest + detailWorst ≤ maxDetailFigures
 #guard aggregateFigures.all (·.forcing == .seNorge2018)
 #guard aggregateFigures.length ≤ maxAggregateFigures
 #guard detailFigures.length ≤ maxDetailFigures
 #guard (figureGrid.map FigureSpec.id).eraseDups.length == figureGrid.length
 #guard firstSlice.all aggregateFigures.contains
-#guard published.length == 10
-#guard published.all aggregateFigures.contains
+#guard published.length == 29
 #guard firstSlice.all published.contains
 #guard (published.map FigureSpec.id).eraseDups.length == published.length
 #guard maxSvgBytes ≤ maxExportBytes && maxCsvBytes ≤ maxExportBytes
-#guard cdfPercents.length == 19
-#guard (cdfPercents.zip cdfPercents.tail).all fun p => p.1 < p.2
 #guard (boxPercents.zip boxPercents.tail).all fun p => p.1 < p.2
-#guard boxPercents.all cdfPercents.contains
 #guard aggregateFigures.all fun f => f.view != .catchmentDetail && f.station.isNone
 #guard detailFigures.all fun f => f.view == .catchmentDetail && f.station.isSome
 #guard (figureGrid.filter (·.forcing == .aifs)).all fun f => f.view != .lstmVsShyft
