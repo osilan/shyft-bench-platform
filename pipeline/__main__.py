@@ -34,6 +34,21 @@ def slice_models(spec: dict) -> list[str]:
     return [model["key"] for model in canon.load()["models"] if model["key"] in eligible]
 
 
+def legacy_basis(specs: list[dict]) -> dict:
+    """The forcing, direction and optimiser whose legacy runs the published figures draw on. Every
+    figure must agree; a figure without a direction (a map, the variance shares) uses the same runs."""
+    with_direction = [s for s in specs if s["direction"] is not None]
+    if not with_direction:
+        raise ValueError("no published figure names a direction")
+    basis = with_direction[0]
+    for spec in specs:
+        if (spec["forcing"], spec["optimizer"]) != (basis["forcing"], basis["optimizer"]) or \
+                spec["direction"] not in (None, basis["direction"]):
+            raise ValueError(f"{spec['id']}: the published figures must share one forcing, "
+                             "direction and optimiser")
+    return basis
+
+
 def parquet_bytes(frame: pd.DataFrame) -> bytes:
     buffer = io.BytesIO()
     frame.to_parquet(buffer, engine="pyarrow", index=False, compression="zstd")
@@ -42,10 +57,11 @@ def parquet_bytes(frame: pd.DataFrame) -> bytes:
 
 def build(dist: Path) -> int:
     specs = canon.declared_figures("published")
+    basis = legacy_basis(specs)
     tables, sources, experiment_ids = [], [], []
-    for model in slice_models(specs[0]):
-        experiment = experiment_for(specs[0], model)
-        frame, srcs = table.build(experiment["id"], model, specs[0]["optimizer"])
+    for model in slice_models(basis):
+        experiment = experiment_for(basis, model)
+        frame, srcs = table.build(experiment["id"], model, basis["optimizer"])
         export.write_once(INTERNAL / f"{experiment['id']}.parquet", parquet_bytes(frame))
         tables.append(frame)
         experiment_ids.append(experiment["id"])

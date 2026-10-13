@@ -17,10 +17,6 @@ RENDERERS = {
     "bias-variability": (page_goal_functions.components_table, page_goal_functions.render_components),
     "regime-map": (page_study_area.regime_map_table, page_study_area.render_regime_map),
     "variance-by-regime": (page_study_area.variance_table, page_study_area.render_variance),
-    # Retired by the switch to the pages (D-032, #64).
-    "kge-compass": (figures.diagnostic_table, figures.render_diagnostic),
-    "low-flow": (figures.diagnostic_table, figures.render_diagnostic),
-    "ruzzante": (figures.diagnostic_table, figures.render_diagnostic),
 }
 
 
