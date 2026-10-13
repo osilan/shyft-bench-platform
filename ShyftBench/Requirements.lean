@@ -18,7 +18,7 @@ One file per area under `ShyftBench/Requirements/`, so every edit has unique con
 | File | Requirements |
 |---|---|
 | `Catalogue.lean` | `bench.workflow.automate`, `bench.experiment.catalogue`, `bench.shyft.pinned`, `bench.launch.precondition`, `bench.launch.fallback` |
-| `Results.lean` | `bench.results.filing`, `bench.compare.matched`, `bench.cohort.snow`, `bench.legacy.read-only`, `bench.collect.reverse-run` |
+| `Results.lean` | `bench.results.filing`, `bench.compare.matched`, `bench.cohort.snow`, `bench.catchments.attributes`, `bench.legacy.read-only`, `bench.collect.reverse-run` |
 | `Metrics.lean` | `bench.metrics.canonical` |
 | `Presentation.lean` | `bench.export`, `bench.dashboard` |
 | `Operations.lean` | `bench.ci.smoke`, `bench.sigma2.safety`, `bench.sigma2.code-divergence` |
