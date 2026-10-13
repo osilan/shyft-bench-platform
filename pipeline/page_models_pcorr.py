@@ -167,8 +167,12 @@ def _paired(table: pd.DataFrame, spec: dict, models) -> pd.DataFrame:
 
 
 def regime_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
-    """Box statistics per regime of Pbias off, Pbias on and the KGE gain, pooled over REGIME_MODELS."""
+    """Box statistics per regime of Pbias off, Pbias on and the KGE gain, pooled over REGIME_MODELS
+    on the catchments paired for every one of them, so each catchment weighs the same."""
     paired = _paired(table, spec, REGIME_MODELS)
+    per_station = paired.groupby("station")["model"].nunique()
+    complete = per_station[per_station == len(REGIME_MODELS)].index
+    paired = paired[paired["station"].isin(complete)]
     regime_of = {s["id"]: s["regime"] for s in canon.load()["stations"]}
     paired["regime"] = paired["station"].map(regime_of)
     percents = summary_percents("box")
