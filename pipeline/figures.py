@@ -29,10 +29,6 @@ DIAGNOSTIC_METRICS = {
         "nse_irregular", "r_irregular", "alpha_irregular", "variance_share_irregular",
     ),
 }
-CDF_METRICS = (
-    "kge_gupta_2009", "kge_kling_2012", "kge_1_over_q",
-    *DIAGNOSTIC_METRICS["ruzzante"],
-)
 DIAGNOSTIC_LABELS = {
     "kge-compass": "KGE formulation comparison",
     "low-flow": "Low-flow KGE",
@@ -41,7 +37,7 @@ DIAGNOSTIC_LABELS = {
 
 
 def canonical_metric_order(view: str) -> tuple[str, ...]:
-    keys = set(CDF_METRICS if view == "cdf" else DIAGNOSTIC_METRICS[view])
+    keys = set(DIAGNOSTIC_METRICS[view])
     return tuple(metric["key"] for metric in canon.load()["metrics"] if metric["key"] in keys)
 
 
@@ -55,6 +51,15 @@ plt.rcParams.update({
     "xtick.major.width": 0.6, "ytick.major.width": 0.6, "axes.grid": True, "axes.axisbelow": True,
     "grid.color": "#dddddd", "grid.linewidth": 0.5,
 })
+
+
+def save_svg(fig) -> bytes:
+    """Deterministic SVG bytes of a finished figure; closes it."""
+    fig.tight_layout()
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format="svg", metadata={"Date": None, "Creator": "shyft-bench-platform"})
+    plt.close(fig)
+    return buffer.getvalue()
 
 
 def goal_label(goal: str) -> str:
@@ -122,86 +127,6 @@ def render_scoreboard(frame: pd.DataFrame) -> bytes:
                  f"precipitation correction {first['pcorr']}; {PERIOD_KIND} period; "
                  f"matched cohort n = {n} catchments", fontsize=7.5, loc="left")
     fig.tight_layout()
-    buffer = io.BytesIO()
-    fig.savefig(buffer, format="svg", metadata={"Date": None, "Creator": "shyft-bench-platform"})
-    plt.close(fig)
-    return buffer.getvalue()
-
-
-def cdf_table(table: pd.DataFrame, spec: dict) -> pd.DataFrame:
-    """Build the Lean-declared percentile table for the CDF metric/goal panels."""
-    return percentile_table(
-        table, spec, list(canonical_metric_order("cdf")), list(summary_percents("cdf"))
-    )
-
-
-def render_cdf(frame: pd.DataFrame, spec: dict) -> bytes:
-    """Render percentile curves in metric-by-goal panels, keeping model seeds separate."""
-    if frame.empty:
-        raise ValueError("cdf view has no matched finite percentile rows")
-    metrics = canonical_metric_order("cdf")
-    goals = canon.load()["goals"]
-    models = [model for model in canonical_model_order() if model in set(frame["model"])]
-    colours = canon.model_colours()
-    percents = summary_percents("cdf")
-    percentile_columns = [f"p{percent:02d}" for percent in percents]
-    line_styles = ("-", "--", ":", "-.")
-    fig, axes = plt.subplots(
-        len(metrics), len(goals), figsize=(1.9 * len(goals), 1.15 * len(metrics)),
-        squeeze=False, sharey=True,
-    )
-    for metric_index, metric in enumerate(metrics):
-        for goal_index, goal in enumerate(goals):
-            ax = axes[metric_index, goal_index]
-            panel = frame[(frame["metric"] == metric) & (frame["goal"] == goal)]
-            for model in models:
-                model_rows = panel[panel["model"] == model]
-                seeds = sorted(model_rows["seed"].dropna().unique(), key=str)
-                if model_rows["seed"].isna().any():
-                    seeds = [None, *seeds]
-                for seed_index, seed in enumerate(seeds):
-                    curve = (model_rows[model_rows["seed"].isna()] if seed is None
-                             else model_rows[model_rows["seed"] == seed])
-                    if curve.empty:
-                        continue
-                    values = curve.iloc[0][percentile_columns].to_numpy(dtype=float)
-                    ax.plot(
-                        values, np.asarray(percents, dtype=float) / 100,
-                        color=colours.get(model, "#000000"), linestyle=line_styles[
-                            seed_index % len(line_styles)
-                        ], linewidth=0.8,
-                    )
-            if not panel.empty:
-                cohort_sizes = sorted({int(value) for value in panel["n"]})
-                cohort_label = (str(cohort_sizes[0]) if len(cohort_sizes) == 1
-                                else f"{cohort_sizes[0]}–{cohort_sizes[-1]}")
-                ax.text(0.98, 0.03, f"cohort n = {cohort_label}", transform=ax.transAxes,
-                        ha="right", va="bottom", fontsize=4.5)
-            if metric_index == 0:
-                ax.set_title(goal_label(goal), fontsize=6)
-            if goal_index == 0:
-                ax.set_ylabel(metric.replace("_", " "), fontsize=6)
-            if metric_index == len(metrics) - 1:
-                ax.set_xlabel("Percentile value", fontsize=6)
-            ax.set_ylim(0, 1)
-            ax.set_yticks((0, 0.5, 1))
-            ax.tick_params(labelsize=5, length=2)
-            ax.grid(axis="x", visible=False)
-    handles = [
-        plt.Line2D([0], [0], color=colours.get(model, "#000000"), linewidth=1,
-                   label=model.upper())
-        for model in models
-    ]
-    fig.legend(handles=handles, frameon=False, loc="upper center", ncols=max(len(models), 1),
-               fontsize=6)
-    direction = spec["direction"] if spec["direction"] is not None else "all"
-    pcorr = "on" if spec["pcorr"] else "off"
-    fig.suptitle(
-        f"Cumulative distributions — forcing {spec['forcing']}; direction {direction}; "
-        f"pcorr {pcorr}; optimizer {spec['optimizer']}",
-        fontsize=8, y=0.998,
-    )
-    fig.tight_layout(rect=(0, 0, 1, 0.985))
     buffer = io.BytesIO()
     fig.savefig(buffer, format="svg", metadata={"Date": None, "Creator": "shyft-bench-platform"})
     plt.close(fig)
@@ -278,14 +203,6 @@ def _diagnostic_title(spec: dict) -> str:
             f"direction {direction}; pcorr {pcorr}; optimizer {spec['optimizer']}")
 
 
-def _save_diagnostic(fig) -> bytes:
-    fig.tight_layout()
-    buffer = io.BytesIO()
-    fig.savefig(buffer, format="svg", metadata={"Date": None, "Creator": "shyft-bench-platform"})
-    plt.close(fig)
-    return buffer.getvalue()
-
-
 def _render_kge_compass(frame: pd.DataFrame, spec: dict) -> bytes:
     goals = canon.load()["goals"]
     model_order = canonical_model_order()
@@ -345,7 +262,7 @@ def _render_kge_compass(frame: pd.DataFrame, spec: dict) -> bytes:
         fontsize=6,
     )
     fig.suptitle(_diagnostic_title(spec), fontsize=7.5)
-    return _save_diagnostic(fig)
+    return save_svg(fig)
 
 
 def _render_ruzzante(frame: pd.DataFrame, spec: dict) -> bytes:
@@ -412,7 +329,7 @@ def _render_ruzzante(frame: pd.DataFrame, spec: dict) -> bytes:
         fontsize=6,
     )
     fig.suptitle(_diagnostic_title(spec), fontsize=7.5)
-    return _save_diagnostic(fig)
+    return save_svg(fig)
 
 
 def render_diagnostic(frame: pd.DataFrame, spec: dict) -> bytes:
@@ -478,4 +395,4 @@ def _render_low_flow(frame: pd.DataFrame, spec: dict) -> bytes:
     title = f"{_diagnostic_title(spec)}; cohort n = {cohort_label} catchments"
     ax.set_title(title, fontsize=7.5, loc="left")
     ax.grid(axis="x", visible=False)
-    return _save_diagnostic(fig)
+    return save_svg(fig)

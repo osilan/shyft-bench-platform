@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import canon, export, figures, table
+from . import canon, export, figures, render, table
 
 INTERNAL = canon.ROOT / "build" / "metrics"
 
@@ -55,15 +55,7 @@ def build(dist: Path) -> int:
 
     artifacts, index = [], []
     for spec in specs:
-        if spec["view"] == "scoreboard":
-            frame = figures.scoreboard_table(metrics, spec["pcorr"])
-            svg = figures.render_scoreboard(frame)
-        elif spec["view"] == "cdf":
-            frame = figures.cdf_table(metrics, spec)
-            svg = figures.render_cdf(frame, spec)
-        else:
-            frame = figures.diagnostic_table(metrics, spec)
-            svg = figures.render_diagnostic(frame, spec)
+        frame, svg = render.render(metrics, spec)
         svg_rel, csv_rel = export.figure_paths(spec["id"])
         csv = figures.table_csv(frame)
         export.write_once(dist / svg_rel, svg)
