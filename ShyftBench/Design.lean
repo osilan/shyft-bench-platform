@@ -105,6 +105,16 @@ def snowCohortDesign : DesignUnit := {
   theorems := #[⟨"ShyftBench.snowCohort_counts", by native_decide⟩]
 }
 
+def catchmentAttributesDesign : DesignUnit := {
+  id := catchmentAttributes.id
+  interfaces := ⟨#[⟨"catchmentAttributeRows", by native_decide⟩,
+    ⟨"Generated.outlineSha256", by native_decide⟩], by native_decide⟩
+  tests := ⟨#[⟨"attribute rows match the regime table", by native_decide⟩,
+    ⟨"pinned table, outline and generator hashes", by native_decide⟩,
+    ⟨"tests/test_catchment_attributes.py", by native_decide⟩], by native_decide⟩
+  theorems := #[⟨"ShyftBench.catchmentAttributes_cover", by native_decide⟩]
+}
+
 def allRequirements : Array Requirement := #[
   automateWorkflow, typedCatalogue, pinnedShyft, launchPrecondition, launchFallback,
   resultFiling, matchedComparison, snowCohort, catchmentAttributes, legacyReadOnly, collectReverseRun,
@@ -113,8 +123,8 @@ def allRequirements : Array Requirement := #[
 
 def allDesigns : Array DesignUnit := #[
   catalogueDesign, pinnedShyftDesign, launchPreconditionDesign, launchFallbackDesign,
-  resultFilingDesign, matchedComparisonDesign, snowCohortDesign, smokeDesign, exportDesign,
-  dashboardDesign]
+  resultFilingDesign, matchedComparisonDesign, snowCohortDesign, catchmentAttributesDesign,
+  smokeDesign, exportDesign, dashboardDesign]
 
 def specSnapshot : SpecSnapshot := {
   requirements := allRequirements
