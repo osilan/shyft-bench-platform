@@ -3,24 +3,17 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Shyft benchmark figures</title>
+    <title>Shyft benchmark</title>
     <link rel="stylesheet" href="./style.css">
   </head>
   <body>
+    <header>
+      <h1>Shyft benchmark</h1>
+      <nav id="pages" aria-label="Pages"></nav>
+    </header>
     <main>
-      <h1>Shyft benchmark figures</h1>
-      <p>Pre-rendered figures and their exported data tables.</p>
-      <form id="selectors">
-        <label>Forcing<select id="forcing"></select></label>
-        <label>Direction<select id="direction"></select></label>
-        <label>Pcorr<select id="pcorr"></select></label>
-        <label>Optimiser<select id="optimizer"></select></label>
-        <label>Figure view<select id="figure"></select></label>
-      </form>
-      <section aria-live="polite">
-        <img id="plot" alt="Selected benchmark figure">
-        <table id="data"></table>
-      </section>
+      <form id="selectors" aria-label="Selectors"></form>
+      <section id="figures" aria-live="polite"></section>
       <p id="error" role="status"></p>
     </main>
     <script type="module" src="./main.js"></script>
