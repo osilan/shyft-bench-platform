@@ -1,0 +1,6 @@
+regime,n_catchments,median_variance_share_seasonal,median_variance_share_interannual,median_variance_share_irregular
+Mountain,42,0.504115,0.055182,0.449312
+Inland,27,0.177851,0.075400,0.727145
+Atlantic,15,0.132107,0.119379,0.730303
+Baltic,11,0.113078,0.122775,0.759416
+Transition,12,0.134234,0.100845,0.763062
