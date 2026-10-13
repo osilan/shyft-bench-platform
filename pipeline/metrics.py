@@ -1,7 +1,9 @@
 """Efficiency metrics by hydroeval; Ruzzante decomposition by `pipeline.ruzzante`.
 
-hydroeval 0.1.0 (read in its source): `kge` is Gupta et al. (2009), `kgeprime` is Kling et
-al. (2012), `pbias` is 100 * sum(obs - sim) / sum(obs) (positive = underestimation).
+hydroeval 0.1.0 (read in its source): `kge` is Gupta et al. (2009) and returns, in this order,
+KGE, r (Pearson correlation), alpha (std(sim) / std(obs)) and beta (sum(sim) / sum(obs));
+`kgeprime` is Kling et al. (2012); `pbias` is 100 * sum(obs - sim) / sum(obs) (positive =
+underestimation).
 """
 import warnings
 
@@ -12,6 +14,8 @@ from . import canon
 from .ruzzante import LEAN_KEYS, compute_ruzzante
 
 EFFICIENCY_KEYS = ("nse", "kge_gupta_2009", "kge_kling_2012", "pbias", "kge_1_over_q")
+# The components of kge_gupta_2009 (D-032), from the same hydroeval call.
+KGE_COMPONENT_KEYS = ("kge_r", "kge_alpha", "kge_beta")
 LOW_FLOW_EPSILON_FACTOR = 0.01
 
 
@@ -27,13 +31,17 @@ def efficiency_metrics(obs, sim) -> dict[str, float]:
     keep = np.isfinite(obs) & np.isfinite(sim)
     obs, sim = obs[keep], sim[keep]
     if obs.size < 2:
-        return {k: float("nan") for k in EFFICIENCY_KEYS}
+        return {k: float("nan") for k in EFFICIENCY_KEYS + KGE_COMPONENT_KEYS}
     eps = LOW_FLOW_EPSILON_FACTOR * float(np.mean(obs))
     with warnings.catch_warnings(), np.errstate(all="ignore"):
         warnings.simplefilter("ignore")
+        kge, r, alpha, beta = he.evaluator(he.kge, sim, obs)
         out = {
             "nse": _scalar(he.evaluator(he.nse, sim, obs)),
-            "kge_gupta_2009": _scalar(he.evaluator(he.kge, sim, obs)[0]),
+            "kge_gupta_2009": _scalar(kge),
+            "kge_r": _scalar(r),
+            "kge_alpha": _scalar(alpha),
+            "kge_beta": _scalar(beta),
             "kge_kling_2012": _scalar(he.evaluator(he.kgeprime, sim, obs)[0]),
             "pbias": _scalar(he.evaluator(he.pbias, sim, obs)),
         }

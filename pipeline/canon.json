@@ -490,6 +490,9 @@
  "metrics":
  [{"optimum": "higher", "key": "nse"},
   {"optimum": "higher", "key": "kge_gupta_2009"},
+  {"optimum": "higher", "key": "kge_r"},
+  {"optimum": "target-1", "key": "kge_alpha"},
+  {"optimum": "target-1", "key": "kge_beta"},
   {"optimum": "higher", "key": "kge_kling_2012"},
   {"optimum": "target-0", "key": "pbias"},
   {"optimum": "higher", "key": "kge_1_over_q"},

@@ -10,7 +10,9 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from pipeline import canon, importer  # noqa: E402
-from pipeline.metrics import EFFICIENCY_KEYS, all_metrics, efficiency_metrics  # noqa: E402
+from pipeline.metrics import (  # noqa: E402
+    EFFICIENCY_KEYS, KGE_COMPONENT_KEYS, all_metrics, efficiency_metrics,
+)
 from pipeline.ruzzante import LEAN_KEYS, compute_ruzzante  # noqa: E402
 
 # Eight days with three zero-flow days. Reference values from plain numpy formulas
@@ -23,6 +25,10 @@ REF = {
     "kge_kling_2012": 0.8103537822442387,
     "pbias": 7.619047619047618,
     "kge_1_over_q": 0.18133857990340208,
+    # Gupta et al. (2009) components: np.corrcoef, population std ratio, mean ratio.
+    "kge_r": 0.9782534039218552,
+    "kge_alpha": 0.7646358163784931,
+    "kge_beta": 0.9238095238095237,
 }
 # The same series with the zero-flow days dropped (the old LSTM rule, q <= 0).
 KGE_1_OVER_Q_ZERO_DAYS_DROPPED = 0.7161455015127699
@@ -104,8 +110,21 @@ class MetricReferenceTest(unittest.TestCase):
         sim = np.append(SIM, 9.0)
         self.assertEqual(efficiency_metrics(obs, sim), self.metrics)
 
+    def test_bench_metrics_canonical_kge_components_match_plain_formulas(self):
+        for key in KGE_COMPONENT_KEYS:
+            self.assertAlmostEqual(self.metrics[key], REF[key], places=12, msg=key)
+
+    def test_bench_metrics_canonical_kge_components_recombine_to_kge(self):
+        r, alpha, beta = (self.metrics[k] for k in KGE_COMPONENT_KEYS)
+        recombined = 1 - math.sqrt((r - 1) ** 2 + (alpha - 1) ** 2 + (beta - 1) ** 2)
+        self.assertAlmostEqual(recombined, self.metrics["kge_gupta_2009"], places=12)
+
+    def test_bench_metrics_canonical_kge_components_are_nan_on_too_few_days(self):
+        values = efficiency_metrics(np.array([1.0]), np.array([1.0]))
+        self.assertTrue(all(math.isnan(values[k]) for k in KGE_COMPONENT_KEYS))
+
     def test_bench_metrics_canonical_keys_are_the_lean_vocabulary(self):
-        self.assertEqual(set(EFFICIENCY_KEYS) | set(LEAN_KEYS.values()),
+        self.assertEqual(set(EFFICIENCY_KEYS) | set(KGE_COMPONENT_KEYS) | set(LEAN_KEYS.values()),
                          {m["key"] for m in canon.load()["metrics"]})
 
     def test_bench_metrics_canonical_constant_observations_give_nan(self):
